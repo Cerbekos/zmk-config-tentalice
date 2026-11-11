@@ -2,9 +2,12 @@ description: Tentalice runtime-configurable pointing input processor
 
 compatible: "zmk,input-processor-tentalice"
 
-include: input-processor.yaml
-
 properties:
+  "#input-processor-cells":
+    type: int
+    const: 0
+    description: Number of cells in input processor specifier
+
   mode:
     type: int
     required: true
