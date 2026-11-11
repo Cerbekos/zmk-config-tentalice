@@ -1,0 +1,2628 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111827">
+  <title>Tentalice Keymap Editor</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, "Yu Gothic UI", "Meiryo", sans-serif;
+      background: #11141a;
+      color: #e5e7eb;
+      font-synthesis: none;
+      --panel: #1a1f28;
+      --border: #373f4c;
+      --muted: #aab2c0;
+      --accent: #8b9cff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body { margin: 0; min-width: 320px; }
+
+    button, input { font: inherit; }
+
+    button {
+      color: inherit;
+      cursor: pointer;
+    }
+
+    .app {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      padding: 32px 24px 48px;
+    }
+
+    header, .toolbar, .section-heading, .layer-tabs {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    header { margin-bottom: 24px; }
+    h1, h2, p { margin: 0; }
+    h1 { font-size: clamp(16px, 2vw, 22px); letter-spacing: .01em; white-space: nowrap; }
+    h2 { font-size: 16px; }
+    .subtitle, .hint, .status, .key-index { color: var(--muted); }
+    .subtitle { margin-top: 7px; font-size: 14px; }
+    .toolbar { flex-wrap: nowrap; justify-content: flex-end; gap: 5px; }
+
+    .button {
+      padding: 8px 9px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      background: #2b313c;
+      font-weight: 650;
+      font-size: 12px;
+      line-height: 1.15;
+      white-space: nowrap;
+    }
+
+    .button:hover:not(:disabled) { background: #39414e; }
+    .button.primary { background: #697af0; border-color: #8390ff; color: #fff; }
+    .button.primary:hover:not(:disabled) { background: #7a89ff; }
+    .button:disabled { cursor: not-allowed; opacity: .45; }
+    .button.link { text-decoration: none; }
+    .toolbar .button,
+    .toolbar label.button {
+      border-color: var(--border);
+      background: #2b313c;
+      color: inherit;
+    }
+    .toolbar .button:hover:not(:disabled),
+    .toolbar label.button:hover {
+      background: #39414e;
+    }
+    .toolbar .button:disabled {
+      border-color: var(--border);
+      background: #2b313c;
+      color: inherit;
+    }
+    #connect-button[aria-pressed="true"],
+    #device-save-button:not(:disabled) {
+      border-color: var(--accent);
+      background: #394154;
+      color: #fff;
+    }
+    .file-input { display: none; }
+
+    .info, .panel {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--panel);
+    }
+
+    .info {
+      margin-bottom: 20px;
+      padding: 14px 17px;
+      color: #c4cee0;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .info strong { color: #f0f3fa; }
+    .panel { padding: 20px; margin-bottom: 18px; }
+    .section-heading { margin-bottom: 16px; }
+    .section-heading .hint { font-size: 12px; text-align: right; }
+    .status { margin: 0 0 14px; font-size: 13px; }
+    .status.error { color: #ff9b9b; }
+    .status.success { color: #8ee0b3; }
+
+    .layer-tabs {
+      justify-content: flex-start;
+      flex-wrap: wrap;
+      margin: 0 0 20px;
+    }
+
+    .layer-tab {
+      min-width: 72px;
+      padding: 9px 13px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #282e38;
+    }
+
+    .layer-tab[aria-pressed="true"] {
+      border-color: var(--accent);
+      background: #394154;
+      color: #fff;
+    }
+
+    .keyboard-scroll { overflow-x: auto; padding: 3px 2px 12px; }
+
+    .keyboard {
+      position: relative;
+      width: 780px;
+      height: 286px;
+      min-width: 780px;
+      margin: 0 auto;
+    }
+
+    .key {
+      position: absolute;
+      display: flex;
+      min-width: 0;
+      min-height: 0;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 7px 4px;
+      border: 1px solid #3b414b;
+      border-radius: 9px;
+      background: linear-gradient(155deg, #252a35, #1b2029);
+      box-shadow: 0 3px 0 #111827;
+      text-align: center;
+      overflow-wrap: anywhere;
+      transition: border-color .12s, background .12s, transform .12s;
+    }
+
+    .key:hover, .key.selected {
+      border-color: #a3adff;
+      background: #39414e;
+    }
+
+    .key.drop-target {
+      border-color: #a3f2cc;
+      background: #24544b;
+      outline: 2px solid #a3f2cc;
+    }
+
+    .key.transparent {
+      border-style: dashed;
+      background: #242a34;
+      color: #aab2c0;
+    }
+
+    .key-label { font-size: 13px; font-weight: 750; line-height: 1.15; white-space: pre-line; }
+    .key-detail { color: #afbdd4; font-size: 9px; line-height: 1.2; }
+    .key-index { position: absolute; top: 4px; left: 6px; font-size: 9px; }
+
+    .keyboard-fader {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-column: 6 / 9;
+      grid-row: 1 / 5;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-rows: 26px repeat(7, minmax(0, 1fr));
+      align-items: center;
+      min-height: 0;
+      padding: 8px 14px;
+      border: 1px solid #3c444f;
+      border-radius: 10px;
+      background: linear-gradient(145deg, #252a35, #171c27);
+      box-shadow: inset 0 0 0 3px #111722, 0 3px 0 #111827;
+    }
+
+    .keyboard-fader-track {
+      position: relative;
+      z-index: 0;
+      grid-column: 1 / -1;
+      grid-row: 2 / 9;
+      align-self: stretch;
+      justify-self: center;
+      width: 8px;
+      border: 1px solid #707b91;
+      border-radius: 999px;
+      background: #0b1020;
+      pointer-events: none;
+    }
+
+    .keyboard-fader-led {
+      z-index: 1;
+      grid-column: 1 / 3;
+      justify-self: center;
+      width: 11px;
+      height: 11px;
+      border: 1px solid color-mix(in srgb, var(--led-color), white 38%);
+      border-radius: 50%;
+      background: var(--led-color);
+      box-shadow: 0 0 5px color-mix(in srgb, var(--led-color), transparent 25%),
+        0 0 10px color-mix(in srgb, var(--led-color), transparent 45%),
+        inset 0 1px 2px rgb(255 255 255 / 75%);
+      transform: translateX(-17.5px);
+    }
+
+    .keyboard-power-switch {
+      position: absolute;
+      left: 75%;
+      bottom: 15px;
+      z-index: 2;
+      display: grid;
+      width: 45px;
+      height: 45px;
+      place-items: center;
+      padding: 3px;
+      border: 1px solid #777f8c;
+      border-radius: 50%;
+      background: #20252e;
+      color: #c1c8d3;
+      font-size: 8px;
+      line-height: 1.3;
+      text-align: center;
+      white-space: pre-line;
+      pointer-events: none;
+      transform: translateX(-15%);
+    }
+
+    .keyboard-fader-title {
+      z-index: 1;
+      grid-column: 1 / -1;
+      grid-row: 1;
+      color: #aeb9ce;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-align: center;
+    }
+
+    .keyboard-fader-point {
+      z-index: 1;
+      justify-self: center;
+      display: grid;
+      grid-column: 1 / -1;
+      width: min(64px, 100%);
+      min-width: 42px;
+      min-height: 24px;
+      place-items: center;
+      padding: 2px 5px;
+      border: 1px solid #56637b;
+      border-radius: 5px;
+      background: linear-gradient(180deg, #343b48, #222936);
+      box-shadow: 0 2px 0 #0b1020;
+      color: #f3f4f6;
+      font-size: 11px;
+      font-weight: 750;
+    }
+
+    .keyboard-fader-point:hover:not(:disabled),
+    .keyboard-fader-point:focus-visible { border-color: #c2caff; background: #46515f; }
+    .keyboard-fader-point:disabled { cursor: not-allowed; opacity: .5; }
+    .keyboard-fader-point:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    .palette-tools { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .binding-builder {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .binding-builder label { display: grid; gap: 5px; color: var(--muted); font-size: 12px; }
+    .binding-builder select { width: 100%; }
+    .binding-builder .modifier-picker { align-content: start; gap: 5px; color: var(--muted); font-size: 12px; }
+    .modifier-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 8px; }
+    .binding-builder .modifier-options label { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+    .modifier-options input { margin: 0; accent-color: var(--accent); }
+    .binding-builder [hidden] { display: none; }
+    .binding-builder[hidden] { display: none; }
+
+    input[type="search"], input[type="text"], select {
+      min-width: 0;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      outline: none;
+      background: #20252e;
+      color: #f3f4f6;
+    }
+
+    input:focus { border-color: var(--accent); }
+    #search { width: min(360px, 100%); }
+    #category-filter { min-width: 190px; }
+
+    .palette {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
+      gap: 8px;
+      max-height: 290px;
+      overflow-y: auto;
+      padding: 2px 4px 5px 2px;
+    }
+
+    .candidate {
+      min-height: 49px;
+      padding: 7px 8px;
+      border: 1px solid #373f4c;
+      border-radius: 8px;
+      background: #252a35;
+      text-align: left;
+    }
+
+    .candidate:hover, .candidate.selected {
+      border-color: var(--accent);
+      background: #343b48;
+    }
+
+    .candidate-label { display: block; font-size: 12px; font-weight: 700; line-height: 1.15; white-space: pre-line; }
+    .candidate-code {
+      display: block;
+      margin-top: 3px;
+      overflow: hidden;
+      color: var(--muted);
+      font-family: ui-monospace, Consolas, monospace;
+      font-size: 9px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .palette-group-heading {
+      grid-column: 1 / -1;
+      padding: 8px 2px 3px;
+      border-bottom: 1px solid var(--border);
+      color: #c4cee0;
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .empty { grid-column: 1 / -1; padding: 14px; color: var(--muted); font-size: 13px; }
+    .footer-note { margin-top: 14px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+
+    @media (max-width: 650px) {
+      .app { padding: 22px 14px 36px; }
+      header { align-items: flex-start; flex-direction: column; gap: 10px; }
+      .toolbar { width: 100%; justify-content: flex-start; overflow-x: auto; padding-bottom: 4px; }
+      .panel { padding: 15px; }
+      .section-heading { align-items: flex-start; flex-direction: column; gap: 5px; }
+      .section-heading .hint { text-align: left; }
+      .binding-builder { grid-template-columns: 1fr 1fr; }
+      .keyboard-fader { padding-right: 6px; padding-left: 6px; }
+      .keyboard-fader-point { min-width: 34px; font-size: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div>
+        <h1>Tentalice Keymap Editor</h1>
+      </div>
+      <div class="toolbar">
+        <button class="button primary" id="connect-button" type="button" aria-pressed="false">キーボードに接続</button>
+        <button class="button" id="disconnect-button" type="button" hidden>キーボードから切断</button>
+        <button class="button" id="restore-stock-button" type="button" disabled>初期設定に戻す</button>
+        <button class="button primary" id="device-save-button" type="button" disabled>キーボードに保存</button>
+        <button class="button" id="save-button" type="button" disabled>ファイルに保存</button>
+        <label class="button" for="file-picker">キーマップをインポート</label>
+        <input class="file-input" id="file-picker" type="file" accept=".json,application/json">
+      </div>
+    </header>
+
+    <p class="status" id="status" role="status" aria-live="polite">USBキーボードに接続するか、JSONバックアップをインポートしてください。</p>
+
+    <section class="panel" aria-labelledby="keyboard-heading">
+      <div class="section-heading">
+        <h2 id="keyboard-heading">キーボード</h2>
+        <span class="hint" id="key-count">Tentalice · 42キー</span>
+      </div>
+      <nav class="layer-tabs" id="layer-tabs" aria-label="レイヤー"></nav>
+      <div class="keyboard-scroll">
+        <div class="keyboard" id="keyboard" aria-label="Tentalice キーボード"></div>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="palette-heading">
+      <div class="section-heading">
+        <h2 id="palette-heading">キー候補</h2>
+        <span class="hint" id="selection-hint">候補を選択してキーに割り当てます。ドラッグにも対応しています。</span>
+      </div>
+      <div class="palette-tools">
+        <input id="search" type="search" placeholder="候補を検索…" aria-label="キー候補を検索">
+        <select id="category-filter" aria-label="キー候補の分類">
+          <option value="zmk">ZMKキーコードリスト</option>
+          <option value="tentalice">Tentaliceキー候補</option>
+          <option value="custom">独自キーコードリスト</option>
+        </select>
+      </div>
+      <div class="binding-builder" id="binding-builder" aria-label="キー動作を作成" hidden>
+        <label>動作
+          <select id="binding-type">
+            <option value="kp">キー</option>
+            <option value="modified-kp">モッド＋キー</option>
+            <option value="mt">モッドタップ</option>
+            <option value="mo">押している間レイヤー</option>
+            <option value="lt">長押しレイヤー／タップキー</option>
+            <option value="tog">レイヤー切替</option>
+            <option value="to">レイヤー移動</option>
+          </select>
+        </label>
+        <div id="binding-modifier-label" class="modifier-picker">
+          <span>モッド（複数選択可）</span>
+          <div class="modifier-options">
+            <label><input type="checkbox" value="LCTRL" checked>左 Ctrl</label>
+            <label><input type="checkbox" value="LSHFT">左 Shift</label>
+            <label><input type="checkbox" value="LALT">左 Alt</label>
+            <label><input type="checkbox" value="LGUI">左 GUI</label>
+            <label><input type="checkbox" value="RCTRL">右 Ctrl</label>
+            <label><input type="checkbox" value="RSHFT">右 Shift</label>
+            <label><input type="checkbox" value="RALT">右 Alt</label>
+            <label><input type="checkbox" value="RGUI">右 GUI</label>
+          </div>
+        </div>
+        <label id="binding-layer-label">レイヤー
+          <select id="binding-layer"></select>
+        </label>
+        <label id="binding-key-label">タップ／キー
+          <select id="binding-key"></select>
+        </label>
+        <button class="button" id="add-binding-button" type="button">候補を作成</button>
+      </div>
+      <div class="palette" id="palette"></div>
+      <p class="footer-note">キーレイアウトとキー番号はboards/shields/tentalice/tentalice-layouts.dtsiに対応しています。ZMKキーコードリストは<a href="https://zmk.dev/docs/keymaps/list-of-keycodes" target="_blank" rel="noopener noreferrer">ZMK公式一覧</a>の項目です。キーコードは文字そのものではなくキー入力を表すため、記号の入力結果はOSやキーボード配列によって異なる場合があります。独自キーコードリストは動作選択から作成できます。USB接続にはWeb Serial対応ブラウザー（Chrome / Edge）とインターネット接続が必要です。キーマップのレイヤー追加・削除はできません。</p>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const LAYER_COUNT = 6;
+      const KEYS_PER_LAYER = 42;
+      const KEY_UNIT = 52;
+      const physicalKeys = [
+        { x: 0.4, y: 0.45, w: 1, h: 1, r: -2, rx: 1.6, ry: 0.85 },
+        { x: 1.4, y: 0.45, w: 1, h: 1, r: -1, rx: 0, ry: -0.05 },
+        { x: 2.12, y: 0.45, w: 1, h: 1, r: 7, rx: 2.65, ry: 3.75 },
+        { x: 3.1, y: 0.45, w: 1, h: 1, r: 8, rx: 2.65, ry: 3.6 },
+        { x: 4.1, y: 0.45, w: 1, h: 1, r: 9, rx: 2.75, ry: 3.35 },
+        { x: 5.1, y: 0.45, w: 1, h: 1, r: 10, rx: 2.95, ry: 3.15 },
+        { x: 8, y: 0.45, w: 1, h: 1, r: -10, rx: 11.15, ry: 3.35 },
+        { x: 9, y: 0.45, w: 1, h: 1, r: -9, rx: 11.35, ry: 3.55 },
+        { x: 10, y: 0.45, w: 1, h: 1, r: -8, rx: 11.5, ry: 3.8 },
+        { x: 11, y: 0.45, w: 1, h: 1, r: -7, rx: 11.5, ry: 4.1 },
+        { x: 11.65, y: 0.2, w: 1, h: 1, r: 1, rx: 1.3, ry: 1.95 },
+        { x: 12.7, y: 0, w: 1, h: 1, r: 2, rx: 1.4, ry: 0.15 },
+        { x: 0.25, y: 1.45, w: 1.25, h: 1, r: -2, rx: 1.6, ry: 0.9 },
+        { x: 1.55, y: 1.45, w: 1, h: 1, r: -1, rx: 0.65, ry: 1.75 },
+        { x: 2.4, y: 1.45, w: 1, h: 1, r: 7, rx: 2.6, ry: 3.5 },
+        { x: 3.4, y: 1.45, w: 1, h: 1, r: 8, rx: 2.6, ry: 3.35 },
+        { x: 4.4, y: 1.45, w: 1, h: 1, r: 9, rx: 2.7, ry: 3.25 },
+        { x: 5.4, y: 1.45, w: 1, h: 1, r: 10, rx: 3, ry: 3.15 },
+        { x: 8.25, y: 1.45, w: 1, h: 1, r: -10, rx: 11.15, ry: 3.35 },
+        { x: 9.25, y: 1.45, w: 1, h: 1, r: -9, rx: 11.35, ry: 3.45 },
+        { x: 10.25, y: 1.45, w: 1, h: 1, r: -8, rx: 11.5, ry: 3.6 },
+        { x: 11.25, y: 1.45, w: 1, h: 1, r: -7, rx: 11.5, ry: 3.75 },
+        { x: 12.1, y: 1.25, w: 1, h: 1, r: 1, rx: 3.7, ry: 0.45 },
+        { x: 13.1, y: 1, w: 1, h: 1, r: 2, rx: 0.9, ry: 1.2 },
+        { x: 0, y: 2.45, w: 1.75, h: 1, r: -2, rx: 1.6, ry: 1.95 },
+        { x: 1.75, y: 2.45, w: 1, h: 1, r: -1, rx: 0, ry: 0.85 },
+        { x: 2.75, y: 2.45, w: 1, h: 1, r: 7, rx: 2.75, ry: 3.65 },
+        { x: 3.73, y: 2.45, w: 1, h: 1, r: 8, rx: 2.75, ry: 3.75 },
+        { x: 4.73, y: 2.45, w: 1, h: 1, r: 9, rx: 2.85, ry: 3.7 },
+        { x: 5.73, y: 2.45, w: 1, h: 1, r: 10, rx: 3.1, ry: 3.65 },
+        { x: 7.75, y: 2.45, w: 1, h: 1, r: -10, rx: 11.05, ry: 3.35 },
+        { x: 8.75, y: 2.45, w: 1, h: 1, r: -10, rx: 11.05, ry: 3.35 },
+        { x: 9.75, y: 2.45, w: 1, h: 1, r: -9, rx: 11.2, ry: 3.35 },
+        { x: 10.75, y: 2.45, w: 1, h: 1, r: -8, rx: 11.3, ry: 3.35 },
+        { x: 11.9, y: 2.25, w: 1, h: 1, r: 1, rx: 3, ry: -6 },
+        { x: 12.85, y: 2, w: 1.5, h: 1, r: 2, rx: 0.5, ry: 0 },
+        { x: 0.3, y: 3.45, w: 1.25, h: 1, r: -2, rx: 1.65, ry: -0.05 },
+        { x: 2.65, y: 3.5, w: 1.5, h: 1, r: 7, rx: 2, ry: 6 },
+        { x: 4.13, y: 3.5, w: 2, h: 1, r: 9, rx: 2.5, ry: 5.75 },
+        { x: 8.25, y: 3.5, w: 1.75, h: 1, r: -10, rx: 11.1, ry: 3.35 },
+        { x: 10, y: 3.5, w: 1.5, h: 1, r: -8, rx: 11.2, ry: 3.1 },
+        { x: 12.6, y: 3, w: 1.25, h: 1, r: 2, rx: 0.5, ry: 1.55 }
+      ];
+      const layerNumbers = Array.from({ length: LAYER_COUNT }, (_, index) => index);
+      const keycodeDefinitions = [
+        ["keyboard", [
+          "A=0x70004 B=0x70005 C=0x70006 D=0x70007 E=0x70008 F=0x70009 G=0x7000a H=0x7000b I=0x7000c J=0x7000d K=0x7000e L=0x7000f M=0x70010",
+          "N=0x70011 O=0x70012 P=0x70013 Q=0x70014 R=0x70015 S=0x70016 T=0x70017 U=0x70018 V=0x70019 W=0x7001a X=0x7001b Y=0x7001c Z=0x7001d",
+          "NUMBER_1=0x7001e EXCLAMATION=0x207001e NUMBER_2=0x7001f AT_SIGN=0x207001f NUMBER_3=0x70020 HASH=0x2070020 NUMBER_4=0x70021",
+          "DOLLAR=0x2070021 NUMBER_5=0x70022 PERCENT=0x2070022 NUMBER_6=0x70023 CARET=0x2070023 NUMBER_7=0x70024 AMPERSAND=0x2070024",
+          "NUMBER_8=0x70025 ASTERISK=0x2070025 NUMBER_9=0x70026 LEFT_PARENTHESIS=0x2070026 NUMBER_0=0x70027 RIGHT_PARENTHESIS=0x2070027",
+          "RETURN=0x70028",
+          "ESCAPE=0x70029 BACKSPACE=0x7002a TAB=0x7002b SPACE=0x7002c MINUS=0x7002d UNDERSCORE=0x207002d",
+          "EQUAL=0x7002e PLUS=0x207002e LEFT_BRACKET=0x7002f LEFT_BRACE=0x207002f RIGHT_BRACKET=0x70030",
+          "RIGHT_BRACE=0x2070030 BACKSLASH=0x70031 PIPE=0x2070031 SEMICOLON=0x70033 COLON=0x2070033",
+          "SINGLE_QUOTE=0x70034 DOUBLE_QUOTES=0x2070034",
+          "GRAVE=0x70035 TILDE=0x2070035 COMMA=0x70036 LESS_THAN=0x2070036 PERIOD=0x70037 GREATER_THAN=0x2070037 SLASH=0x70038",
+          "QUESTION=0x2070038 CAPSLOCK=0x70039 F1=0x7003a F2=0x7003b F3=0x7003c F4=0x7003d F5=0x7003e F6=0x7003f F7=0x70040 F8=0x70041",
+          "F9=0x70042 F10=0x70043 F11=0x70044 F12=0x70045 PRINTSCREEN=0x70046 SCROLLLOCK=0x70047 PAUSE_BREAK=0x70048 INSERT=0x70049",
+          "HOME=0x7004a PAGE_UP=0x7004b DELETE=0x7004c END=0x7004d PAGE_DOWN=0x7004e RIGHT_ARROW=0x7004f LEFT_ARROW=0x70050",
+          "DOWN_ARROW=0x70051 UP_ARROW=0x70052 NON_US_BACKSLASH=0x70064 PIPE2=0x2070064 K_APPLICATION=0x70065 K_POWER=0x70066 F13=0x70068",
+          "F14=0x70069 F15=0x7006a F16=0x7006b F17=0x7006c F18=0x7006d F19=0x7006e F20=0x7006f F21=0x70070 F22=0x70071 F23=0x70072",
+          "F24=0x70073 K_EXECUTE=0x70074 K_HELP=0x70075 K_MENU=0x70076 K_SELECT=0x70077 K_STOP=0x70078 K_AGAIN=0x70079 K_UNDO=0x7007a",
+          "K_CUT=0x7007b K_COPY=0x7007c K_PASTE=0x7007d K_FIND=0x7007e K_MUTE=0x7007f K_VOLUME_UP=0x70080 K_VOLUME_DOWN=0x70081",
+          "LOCKING_CAPS=0x70082 LOCKING_NUM=0x70083 LOCKING_SCROLL=0x70084 ALT_ERASE=0x70099 SYSREQ=0x7009a K_CANCEL=0x7009b CLEAR=0x7009c",
+          "PRIOR=0x7009d RETURN2=0x7009e SEPARATOR=0x7009f OUT=0x700a0 OPER=0x700a1 CLEAR_AGAIN=0x700a2 CRSEL=0x700a3 EXSEL=0x700a4",
+          "K_PLAY_PAUSE=0x700e8 K_STOP2=0x700e9 K_PREVIOUS=0x700ea K_NEXT=0x700eb K_EJECT=0x700ec K_VOLUME_UP2=0x700ed K_VOLUME_DOWN2=0x700ee",
+          "K_MUTE2=0x700ef K_WWW=0x700f0 K_BACK=0x700f1 K_FORWARD=0x700f2 K_STOP3=0x700f3 K_FIND2=0x700f4 K_SCROLL_UP=0x700f5",
+          "K_SCROLL_DOWN=0x700f6 K_EDIT=0x700f7 K_SLEEP=0x700f8 K_LOCK=0x700f9 K_REFRESH=0x700fa K_CALCULATOR=0x700fb",
+        ].join(" ")],
+        ["keypad", [
+          "KP_NUMLOCK=0x70053 CLEAR2=0x2070053 KP_DIVIDE=0x70054 KP_MULTIPLY=0x70055 KP_MINUS=0x70056 KP_PLUS=0x70057 KP_ENTER=0x70058",
+          "KP_NUMBER_1=0x70059 KP_NUMBER_2=0x7005a KP_NUMBER_3=0x7005b KP_NUMBER_4=0x7005c KP_NUMBER_5=0x7005d KP_NUMBER_6=0x7005e",
+          "KP_NUMBER_7=0x7005f KP_NUMBER_8=0x70060 KP_NUMBER_9=0x70061 KP_NUMBER_0=0x70062 KP_DOT=0x70063 KP_EQUAL=0x70067 KP_COMMA=0x70085",
+          "KP_EQUAL_AS400=0x70086 KP_LEFT_PARENTHESIS=0x700b6 KP_RIGHT_PARENTHESIS=0x700b7 KP_CLEAR=0x700d8",
+        ].join(" ")],
+        ["international", [
+          "INTERNATIONAL_1=0x70087 INTERNATIONAL_2=0x70088 INTERNATIONAL_3=0x70089 INTERNATIONAL_4=0x7008a INTERNATIONAL_5=0x7008b",
+          "INTERNATIONAL_6=0x7008c INTERNATIONAL_7=0x7008d INTERNATIONAL_8=0x7008e INTERNATIONAL_9=0x7008f LANGUAGE_1=0x70090",
+          "LANGUAGE_2=0x70091 LANGUAGE_3=0x70092 LANGUAGE_4=0x70093 LANGUAGE_5=0x70094 LANGUAGE_6=0x70095 LANGUAGE_7=0x70096",
+          "LANGUAGE_8=0x70097 LANGUAGE_9=0x70098",
+        ].join(" ")],
+        ["consumer", [
+          "C_POWER=0xc0030 C_RESET=0xc0031 C_SLEEP=0xc0032 C_SLEEP_MODE=0xc0034 C_MENU=0xc0040 C_MENU_PICK=0xc0041 C_MENU_UP=0xc0042",
+          "C_MENU_DOWN=0xc0043 C_MENU_LEFT=0xc0044 C_MENU_RIGHT=0xc0045 C_MENU_ESCAPE=0xc0046 C_MENU_INCREASE=0xc0047 C_MENU_DECREASE=0xc0048",
+          "C_DATA_ON_SCREEN=0xc0060 C_CAPTIONS=0xc0061 C_SNAPSHOT=0xc0065 C_PIP=0xc0067 C_RED_BUTTON=0xc0069 C_GREEN_BUTTON=0xc006a",
+          "C_BLUE_BUTTON=0xc006b C_YELLOW_BUTTON=0xc006c C_ASPECT=0xc006d C_BRIGHTNESS_INC=0xc006f C_BRIGHTNESS_DEC=0xc0070",
+          "C_BACKLIGHT_TOGGLE=0xc0072 C_BRIGHTNESS_MINIMUM=0xc0073 C_BRIGHTNESS_MAXIMUM=0xc0074 C_BRIGHTNESS_AUTO=0xc0075",
+          "C_MEDIA_STEP=0xc0082 C_RECALL_LAST=0xc0083 C_MEDIA_COMPUTER=0xc0088 C_MEDIA_TV=0xc0089 C_MEDIA_WWW=0xc008a C_MEDIA_DVD=0xc008b",
+          "C_MEDIA_PHONE=0xc008c C_MEDIA_GUIDE=0xc008d C_MEDIA_VIDEOPHONE=0xc008e C_MEDIA_GAMES=0xc008f C_MEDIA_MESSAGES=0xc0090",
+          "C_MEDIA_CD=0xc0091 C_MEDIA_VCR=0xc0092 C_MEDIA_TUNER=0xc0093 C_QUIT=0xc0094 C_HELP=0xc0095 C_MEDIA_TAPE=0xc0096",
+          "C_MEDIA_CABLE=0xc0097 C_MEDIA_SATELLITE=0xc0098 C_MEDIA_HOME=0xc009a C_CHANNEL_INC=0xc009c C_CHANNEL_DEC=0xc009d",
+          "C_MEDIA_VCR_PLUS=0xc00a0 C_PLAY=0xc00b0 C_PAUSE=0xc00b1 C_RECORD=0xc00b2 C_FAST_FORWARD=0xc00b3 C_REWIND=0xc00b4 C_NEXT=0xc00b5",
+          "C_PREVIOUS=0xc00b6 C_STOP=0xc00b7 C_EJECT=0xc00b8 C_RANDOM_PLAY=0xc00b9 C_REPEAT=0xc00bc C_SLOW_TRACKING=0xc00bf",
+          "C_STOP_EJECT=0xc00cc C_PLAY_PAUSE=0xc00cd C_VOICE_COMMAND=0xc00cf C_MUTE=0xc00e2 C_BASS_BOOST=0xc00e5 C_VOLUME_UP=0xc00e9",
+          "C_VOLUME_DOWN=0xc00ea C_SLOW=0xc00f5 C_ALTERNATE_AUDIO_INCREMENT=0xc0173 C_AL_CCC=0xc0183 C_AL_WORD=0xc0184",
+          "C_AL_TEXT_EDITOR=0xc0185 C_AL_SPREADSHEET=0xc0186 C_AL_GRAPHICS_EDITOR=0xc0187 C_AL_PRESENTATION=0xc0188 C_AL_DATABASE=0xc0189",
+          "C_AL_EMAIL=0xc018a C_AL_NEWS=0xc018b C_AL_VOICEMAIL=0xc018c C_AL_CONTACTS=0xc018d C_AL_CALENDAR=0xc018e C_AL_TASK_MANAGER=0xc018f",
+          "C_AL_JOURNAL=0xc0190 C_AL_FINANCE=0xc0191 C_AL_CALCULATOR=0xc0192 C_AL_AV_CAPTURE_PLAYBACK=0xc0193 C_AL_MY_COMPUTER=0xc0194",
+          "C_AL_WWW=0xc0196 C_AL_NETWORK_CHAT=0xc0199 C_AL_LOGOFF=0xc019c C_AL_LOCK=0xc019e C_AL_CONTROL_PANEL=0xc019f",
+          "C_AL_SELECT_TASK=0xc01a2 C_AL_NEXT_TASK=0xc01a3 C_AL_PREVIOUS_TASK=0xc01a4 C_AL_HELP=0xc01a6 C_AL_DOCUMENTS=0xc01a7",
+          "C_AL_SPELLCHECK=0xc01ab C_AL_KEYBOARD_LAYOUT=0xc01ae C_AL_SCREEN_SAVER=0xc01b1 C_AL_FILE_BROWSER=0xc01b4",
+          "C_AL_IMAGE_BROWSER=0xc01b6 C_AL_AUDIO_BROWSER=0xc01b7 C_AL_MOVIE_BROWSER=0xc01b8 C_AL_INSTANT_MESSAGING=0xc01bc",
+          "C_AL_OEM_FEATURES=0xc01bd C_AC_NEW=0xc0201 C_AC_OPEN=0xc0202 C_AC_CLOSE=0xc0203 C_AC_EXIT=0xc0204 C_AC_SAVE=0xc0207",
+          "C_AC_PRINT=0xc0208 C_AC_PROPERTIES=0xc0209 C_AC_UNDO=0xc021a C_AC_COPY=0xc021b C_AC_CUT=0xc021c C_AC_PASTE=0xc021d",
+          "C_AC_FIND=0xc021f C_AC_SEARCH=0xc0221 C_AC_GOTO=0xc0222 C_AC_HOME=0xc0223 C_AC_BACK=0xc0224 C_AC_FORWARD=0xc0225 C_AC_STOP=0xc0226",
+          "C_AC_REFRESH=0xc0227 C_AC_BOOKMARKS=0xc022a C_AC_ZOOM_IN=0xc022d C_AC_ZOOM_OUT=0xc022e C_AC_ZOOM=0xc022f C_AC_VIEW_TOGGLE=0xc0232",
+          "C_AC_SCROLL_UP=0xc0233 C_AC_SCROLL_DOWN=0xc0234 C_AC_EDIT=0xc023d C_AC_CANCEL=0xc025f C_AC_INSERT=0xc0269 C_AC_DEL=0xc026a",
+          "C_AC_REDO=0xc0279 C_AC_REPLY=0xc0289 C_AC_FORWARD_MAIL=0xc028b C_AC_SEND=0xc028c C_AC_DESKTOP_SHOW_ALL_WINDOWS=0xc029f",
+          "C_AC_DESKTOP_SHOW_ALL_APPLICATIONS=0xc02a2 C_KEYBOARD_INPUT_ASSIST_PREVIOUS=0xc02c7 C_KEYBOARD_INPUT_ASSIST_NEXT=0xc02c8",
+          "C_KEYBOARD_INPUT_ASSIST_PREVIOUS_GROUP=0xc02c9 C_KEYBOARD_INPUT_ASSIST_NEXT_GROUP=0xc02ca C_KEYBOARD_INPUT_ASSIST_ACCEPT=0xc02cb",
+          "C_KEYBOARD_INPUT_ASSIST_CANCEL=0xc02cc C_AC_NEXT_KEYBOARD_LAYOUT_SELECT=0xc029d",
+        ].join(" ")],
+        ["system", [
+          "SYSTEM_POWER=0x10081 SYSTEM_SLEEP=0x10082 SYSTEM_WAKE_UP=0x10083",
+        ].join(" ")],
+        ["modifier", [
+          "LEFT_CONTROL=0x700e0 LEFT_SHIFT=0x700e1 LEFT_ALT=0x700e2 LEFT_GUI=0x700e3 RIGHT_CONTROL=0x700e4 RIGHT_SHIFT=0x700e5",
+          "RIGHT_ALT=0x700e6 RIGHT_GUI=0x700e7",
+        ].join(" ")],
+      ];
+
+      const officialKeycodeGroups = [
+        ["letters", "A B C D E F G H I J K L M N O P Q R S T U V W X Y Z"],
+        ["numbers", "NUMBER_1 NUMBER_2 NUMBER_3 NUMBER_4 NUMBER_5 NUMBER_6 NUMBER_7 NUMBER_8 NUMBER_9 NUMBER_0"],
+        ["symbols", "EXCLAMATION AT_SIGN HASH DOLLAR PERCENT CARET AMPERSAND ASTERISK LEFT_PARENTHESIS RIGHT_PARENTHESIS EQUAL PLUS MINUS UNDERSCORE SLASH QUESTION BACKSLASH PIPE NON_US_BACKSLASH PIPE2 SEMICOLON COLON SINGLE_QUOTE DOUBLE_QUOTES COMMA LESS_THAN PERIOD GREATER_THAN LEFT_BRACKET LEFT_BRACE RIGHT_BRACKET RIGHT_BRACE GRAVE TILDE NON_US_HASH TILDE2"],
+        ["control", "ESCAPE RETURN RETURN2 SPACE TAB BACKSPACE DELETE INSERT"],
+        ["navigation", "HOME END PAGE_UP PAGE_DOWN UP_ARROW DOWN_ARROW LEFT_ARROW RIGHT_ARROW K_APPLICATION"],
+        ["locks", "CAPSLOCK LOCKING_CAPS SCROLLLOCK LOCKING_SCROLL LOCKING_NUM"],
+        ["modifiers", "LEFT_SHIFT RIGHT_SHIFT LEFT_CONTROL RIGHT_CONTROL LEFT_ALT RIGHT_ALT LEFT_GUI RIGHT_GUI"],
+        ["function", "F1 F2 F3 F4 F5 F6 F7 F8 F9 F10 F11 F12 F13 F14 F15 F16 F17 F18 F19 F20 F21 F22 F23 F24"],
+        ["international", "INTERNATIONAL_1 INTERNATIONAL_2 INTERNATIONAL_3 INTERNATIONAL_4 INTERNATIONAL_5 INTERNATIONAL_6 INTERNATIONAL_7 INTERNATIONAL_8 INTERNATIONAL_9"],
+        ["language", "LANGUAGE_1 LANGUAGE_2 LANGUAGE_3 LANGUAGE_4 LANGUAGE_5 LANGUAGE_6 LANGUAGE_7 LANGUAGE_8 LANGUAGE_9"],
+        ["miscellaneous", "PRINTSCREEN PAUSE_BREAK ALT_ERASE SYSREQ K_CANCEL CLEAR CLEAR_AGAIN CRSEL PRIOR SEPARATOR OUT OPER EXSEL K_EDIT KP_NUMLOCK KP_CLEAR CLEAR2 KP_ENTER"],
+        ["keypad-numbers", "KP_NUMBER_1 KP_NUMBER_2 KP_NUMBER_3 KP_NUMBER_4 KP_NUMBER_5 KP_NUMBER_6 KP_NUMBER_7 KP_NUMBER_8 KP_NUMBER_9 KP_NUMBER_0"],
+        ["keypad-operations", "KP_PLUS KP_MINUS KP_MULTIPLY KP_DIVIDE KP_EQUAL KP_EQUAL_AS400 KP_DOT KP_COMMA KP_LEFT_PARENTHESIS KP_RIGHT_PARENTHESIS"],
+        ["cut-copy-paste", "C_AC_CUT K_CUT C_AC_COPY K_COPY C_AC_PASTE K_PASTE"],
+        ["undo-redo", "C_AC_UNDO K_UNDO C_AC_REDO K_AGAIN"],
+        ["sound", "C_VOLUME_UP K_VOLUME_UP K_VOLUME_UP2 C_VOLUME_DOWN K_VOLUME_DOWN K_VOLUME_DOWN2 C_MUTE K_MUTE K_MUTE2 C_ALTERNATE_AUDIO_INCREMENT C_BASS_BOOST"],
+        ["display", "C_BRIGHTNESS_INC C_BRIGHTNESS_DEC C_BRIGHTNESS_MINIMUM C_BRIGHTNESS_MAXIMUM C_BRIGHTNESS_AUTO C_BACKLIGHT_TOGGLE C_ASPECT C_PIP"],
+        ["media", "C_RECORD C_PLAY C_PLAY_PAUSE K_PLAY_PAUSE C_PAUSE C_STOP K_STOP2 K_STOP3 C_STOP_EJECT C_EJECT K_EJECT C_NEXT K_NEXT C_PREVIOUS K_PREVIOUS C_FAST_FORWARD C_REWIND C_SLOW C_SLOW_TRACKING C_REPEAT C_RANDOM_PLAY C_CAPTIONS C_DATA_ON_SCREEN C_SNAPSHOT"],
+        ["consumer-menus", "C_MENU C_MENU_PICK C_MENU_UP C_MENU_DOWN C_MENU_LEFT C_MENU_RIGHT C_MENU_ESCAPE C_MENU_INCREASE C_MENU_DECREASE C_RED_BUTTON C_GREEN_BUTTON C_BLUE_BUTTON C_YELLOW_BUTTON"],
+        ["consumer-controls", "C_CHANNEL_INC C_CHANNEL_DEC C_RECALL_LAST C_MEDIA_VCR_PLUS C_MEDIA_GUIDE C_MEDIA_STEP C_MEDIA_HOME C_MEDIA_TV C_MEDIA_CABLE C_MEDIA_TUNER C_MEDIA_DVD C_MEDIA_CD C_MEDIA_SATELLITE C_MEDIA_VCR C_MEDIA_TAPE C_MEDIA_COMPUTER C_MEDIA_WWW C_MEDIA_GAMES C_MEDIA_PHONE C_MEDIA_VIDEOPHONE C_MEDIA_MESSAGES C_QUIT C_HELP"],
+        ["application-controls", "K_MENU C_AC_PROPERTIES K_SELECT C_AC_CANCEL K_EXECUTE C_AC_REFRESH K_REFRESH C_AC_STOP K_STOP C_AC_FORWARD K_FORWARD C_AC_BACK K_BACK C_AC_HOME C_AC_BOOKMARKS C_AC_NEW C_AC_OPEN C_AC_SAVE C_AC_CLOSE C_AC_EXIT C_AC_PRINT C_AC_FIND K_FIND K_FIND2 C_AC_SEARCH C_AC_GOTO C_AC_ZOOM C_AC_ZOOM_IN C_AC_ZOOM_OUT C_AC_SCROLL_UP K_SCROLL_UP C_AC_SCROLL_DOWN K_SCROLL_DOWN C_AC_REPLY C_AC_FORWARD_MAIL C_AC_SEND C_AC_EDIT C_AC_INSERT C_AC_DEL C_AC_VIEW_TOGGLE C_AC_DESKTOP_SHOW_ALL_WINDOWS C_AC_DESKTOP_SHOW_ALL_APPLICATIONS C_VOICE_COMMAND C_AC_NEXT_KEYBOARD_LAYOUT_SELECT"],
+        ["applications", "C_AL_NEXT_TASK C_AL_PREVIOUS_TASK C_AL_SELECT_TASK C_AL_MY_COMPUTER C_AL_DOCUMENTS C_AL_FILE_BROWSER C_AL_WWW K_WWW C_AL_EMAIL C_AL_INSTANT_MESSAGING C_AL_NETWORK_CHAT C_AL_CONTACTS C_AL_CALENDAR C_AL_IMAGE_BROWSER C_AL_AUDIO_BROWSER C_AL_MOVIE_BROWSER C_AL_TEXT_EDITOR C_AL_WORD C_AL_SPREADSHEET C_AL_PRESENTATION C_AL_GRAPHICS_EDITOR C_AL_CALCULATOR K_CALCULATOR C_AL_NEWS C_AL_DATABASE C_AL_VOICEMAIL C_AL_FINANCE C_AL_TASK_MANAGER C_AL_JOURNAL C_AL_AV_CAPTURE_PLAYBACK C_AL_SPELLCHECK C_AL_SCREEN_SAVER C_AL_KEYBOARD_LAYOUT C_AL_CONTROL_PANEL C_AL_HELP K_HELP C_AL_OEM_FEATURES C_AL_CCC"],
+        ["input-assist", "C_KEYBOARD_INPUT_ASSIST_NEXT C_KEYBOARD_INPUT_ASSIST_PREVIOUS C_KEYBOARD_INPUT_ASSIST_NEXT_GROUP C_KEYBOARD_INPUT_ASSIST_PREVIOUS_GROUP C_KEYBOARD_INPUT_ASSIST_ACCEPT C_KEYBOARD_INPUT_ASSIST_CANCEL"],
+        ["power-lock", "C_POWER K_POWER C_RESET C_SLEEP K_SLEEP C_SLEEP_MODE C_AL_LOGOFF C_AL_LOCK K_LOCK"]
+      ];
+      const officialKeycodeGroupLabels = new Map([
+        ["letters", "キーボード"],
+        ["numbers", "数字・記号"],
+        ["symbols", "記号"],
+        ["control", "制御キー"],
+        ["navigation", "ナビゲーション"],
+        ["locks", "ロック"],
+        ["modifiers", "修飾子"],
+        ["function", "ファンクションキー"],
+        ["international", "国際キー"],
+        ["language", "言語"],
+        ["miscellaneous", "その他のキー"],
+        ["keypad-numbers", "テンキー"],
+        ["keypad-operations", "テンキーの演算"],
+        ["cut-copy-paste", "編集"],
+        ["undo-redo", "元に戻す・やり直し"],
+        ["sound", "音量・サウンド"],
+        ["display", "ディスプレイ"],
+        ["media", "メディア"],
+        ["consumer-menus", "メニュー操作"],
+        ["consumer-controls", "コンシューマー操作"],
+        ["application-controls", "アプリケーション操作"],
+        ["applications", "アプリの起動"],
+        ["input-assist", "入力支援"],
+        ["power-lock", "電源・ロック"]
+      ]);
+      const tentaliceBindingGroups = [
+        ["キーボード", [
+          "&kp A", "&kp B", "&kp C", "&kp D", "&kp E", "&kp F", "&kp G", "&kp H", "&kp I",
+          "&kp J", "&kp K", "&kp L", "&kp M", "&kp N", "&kp O", "&kp P", "&kp Q", "&kp R",
+          "&kp S", "&kp T", "&kp U", "&kp V", "&kp W", "&kp X", "&kp Y", "&kp Z",
+          "&kp N1", "&kp N2", "&kp N3", "&kp N4", "&kp N5", "&kp N6", "&kp N7", "&kp N8",
+          "&kp N9", "&kp N0", "&kp F1", "&kp F2", "&kp F3", "&kp F4", "&kp F5", "&kp F6",
+          "&kp F7", "&kp F8", "&kp F9", "&kp F10", "&kp EXCL", "&kp HASH", "&kp DLLR",
+          "&kp PRCNT", "&kp C_VOLUME_UP", "&kp C_VOLUME_DOWN", "&kp C_BRIGHTNESS_INC",
+          "&kp C_BRIGHTNESS_DEC", "&kp C_MUTE", "&kp MINUS", "&kp SLASH", "&kp SPACE",
+          "&kp TAB", "&kp RET", "&kp ESC",
+          "&kp BSPC", "&kp DEL", "&kp PG_UP", "&kp PG_DN", "&kp HOME", "&kp END", "&kp UP",
+          "&kp DOWN", "&kp LEFT", "&kp RIGHT", "&kp CAPSLOCK", "&kp INTERNATIONAL_1",
+          "&kp KP_NUM", "&kp KP_N0", "&kp KP_N1", "&kp KP_N2", "&kp KP_N3", "&kp KP_N4",
+          "&kp KP_N5", "&kp KP_N6", "&kp KP_N7", "&kp KP_N8", "&kp KP_N9", "&kp KP_PLUS",
+          "&kp KP_MINUS", "&kp KP_SLASH", "&kp KP_ASTERISK", "&kp KP_ENTER", "&kp KP_DOT"
+        ]],
+        ["モッド・モッドタップ", [
+          "&mt LCTRL Q", "&mt LSHFT Z", "&mt RSHFT SLASH", "&mt LCTRL ESC",
+          "&mt LGUI CAPSLOCK", "&mt LALT CAPSLOCK", "&mt RALT BSPC", "&mt RGUI DEL",
+          "&mt RCTRL RS(CAPSLOCK)", "&mt RSHFT INTERNATIONAL_1", "&kp LC(Q)", "&kp LC(W)",
+          "&kp LC(E)", "&kp LC(R)", "&kp LC(T)", "&kp LC(Y)", "&kp LC(U)", "&kp LC(I)",
+          "&kp LC(O)", "&kp LC(P)", "&kp LC(A)", "&kp LC(S)", "&kp LC(D)", "&kp LC(F)",
+          "&kp LC(G)", "&kp LC(H)", "&kp LC(J)", "&kp LC(K)", "&kp LC(L)", "&kp LC(SEMI)",
+          "&kp LC(Z)", "&kp LC(X)", "&kp LC(C)", "&kp LC(V)", "&kp LC(B)", "&kp LC(N)",
+          "&kp LC(M)", "&kp LC(COMMA)", "&kp LC(DOT)", "&kp LC(SLASH)", "&kp LA(UP)",
+          "&kp LA(TAB)", "&kp LS(LA(TAB))", "&kp LG(TAB)", "&kp LS(LG(TAB))"
+        ]],
+        ["レイヤー・透過", [
+          "&lt 1 SPACE", "&lt 2 RET", "&lt 3 SPACE", "&lt 4 DEL", "&lt 5 SPACE",
+          "&mo 1", "&mo 2", "&mo 3", "&mo 4", "&mo 5", "&trans"
+        ]],
+        ["Tentaliceカラー動作", [
+          "&rlt_yellow 3 LG(TAB)", "&rlt_red 1 SPACE", "&rlt_green 2 RET",
+          "&rlt_blue 4 DEL", "&rlt_violet 5 SPACE", "&rmt_cyan LCTRL TAB",
+          "&rmt_orange LSHFT CAPSLOCK", "&rmt_magenta LALT CAPSLOCK",
+          "&rmt_lime RGUI RS(K_APP)"
+        ]],
+        ["マクロ", [
+          "&jp_dquote", "&jp_amp", "&jp_quote", "&jp_equal", "&jp_caret", "&jp_yen",
+          "&jp_plus", "&jp_tilde", "&jp_pipe", "&jp_at", "&jp_colon", "&jp_aster",
+          "&jp_baqt", "&jp_under", "&jp_lbrkt", "&jp_rbrkt", "&jp_lpar", "&jp_rpar",
+          "&jp_lbrace", "&jp_rbrace", "&jp_kana", "&jp_eisu", "&jp_hanzen"
+        ]],
+        ["タップダンス", []],
+        ["マウス", [
+          "&msc SCRL_UP", "&msc SCRL_DOWN", "&msc SCRL_LEFT", "&msc SCRL_RIGHT",
+          "&mmv MOVE_UP", "&mmv MOVE_DOWN", "&mmv MOVE_LEFT", "&mmv MOVE_RIGHT",
+          "&mkp LCLK", "&mkp RCLK", "&mkp MB3", "&mkp MB4", "&mkp MB5", "&mouse_gesture"
+        ]],
+        ["RGB・Bluetooth・その他", [
+          "&rgb_ug RGB_TOG", "&rgb_ug RGB_SPI", "&rgb_ug RGB_EFF", "&rgb_ug RGB_SPD",
+          "&rgb_ug RGB_EFR", "&bt BT_SEL 0", "&bt BT_SEL 1", "&bt BT_SEL 2",
+          "&bt BT_SEL 3", "&bt BT_SEL 4", "&bt BT_CLR", "&bt BT_CLR_ALL",
+          "&studio_unlock", "&out OUT_BLE", "&out OUT_USB", "&bootloader"
+        ]]
+      ];
+      const officialKeycodeRanks = new Map();
+      const officialKeycodeCategories = new Map();
+      let officialKeycodeRank = 0;
+      for (const [category, codes] of officialKeycodeGroups) {
+        for (const code of codes.split(" ")) {
+          officialKeycodeRanks.set(code, officialKeycodeRank++);
+          officialKeycodeCategories.set(code, category);
+        }
+      }
+      const layerBehaviorTypes = [
+        { code: "mo", displayName: "Momentary Layer", label: "MO", detail: "押している間だけ有効" },
+        { code: "to", displayName: "To Layer", label: "TO", detail: "他のレイヤーを無効化" },
+        { code: "tog", displayName: "Toggle Layer", label: "TOG", detail: "オン・オフ切替" },
+        { code: "lt", displayName: "Layer Tap", label: "LT", detail: "長押しでレイヤー・タップでキー" }
+      ];
+      const keycodeCatalog = keycodeDefinitions.flatMap(([, data]) =>
+        data.split(/\s+/).filter(Boolean).map((entry) => {
+          const [code, usage] = entry.split("=");
+          return {
+            code,
+            category: officialKeycodeCategories.get(code) || "other",
+            order: officialKeycodeRanks.get(code) ?? Number.MAX_SAFE_INTEGER,
+            usage: Number(usage),
+            binding: `&kp ${code}`
+          };
+        })
+      ).sort((left, right) => left.order - right.order);
+      const keycodeByUsage = new Map(keycodeCatalog.map(({ code, usage }) => [usage, code]));
+      const keycodeByCode = new Map(keycodeCatalog.map((entry) => [entry.code, entry]));
+      const keycodeDisplayNames = new Map(Object.entries({
+        NUMBER_1: "N1", NUMBER_2: "N2", NUMBER_3: "N3", NUMBER_4: "N4", NUMBER_5: "N5",
+        NUMBER_6: "N6", NUMBER_7: "N7", NUMBER_8: "N8", NUMBER_9: "N9", NUMBER_0: "N0",
+        EXCLAMATION: "!", AT_SIGN: "@", HASH: "#", DOLLAR: "$", PERCENT: "%",
+        AMPERSAND: "&", ASTERISK: "*", LEFT_PARENTHESIS: "(", RIGHT_PARENTHESIS: ")",
+        UNDERSCORE: "_", SLASH: "/", QUESTION: "?", BACKSLASH: "\\",
+        NON_US_BACKSLASH: "NUBS", SEMICOLON: ";", COLON: ":", SINGLE_QUOTE: "'", DOUBLE_QUOTES: "\"",
+        LESS_THAN: "<", COMMA: ",", PERIOD: ".", GREATER_THAN: ">", LEFT_BRACKET: "[",
+        LEFT_BRACE: "{", RIGHT_BRACKET: "]", RIGHT_BRACE: "}", NON_US_HASH: "NUHS",
+        MINUS: "-", EQUAL: "=", PLUS: "+", PIPE: "|", GRAVE: "`", TILDE: "~",
+        ESCAPE: "ESC", RETURN: "ENTER", RETURN2: "RET2", BACKSPACE: "BSPC", DELETE: "DEL",
+        INSERT: "INS", PAGE_UP: "PG_UP", PAGE_DOWN: "PG_DN", UP_ARROW: "UP", DOWN_ARROW: "DOWN",
+        LEFT_ARROW: "LEFT", RIGHT_ARROW: "RIGHT", K_APPLICATION: "K_CMENU", CAPSLOCK: "CLCK",
+        LOCKING_CAPS: "LCAPS", SCROLLLOCK: "SLCK", LOCKING_SCROLL: "LSLCK", LOCKING_NUM: "LNLCK",
+        INTERNATIONAL_1: "INT_RO", INTERNATIONAL_2: "INT_KANA", INTERNATIONAL_3: "INT_YEN",
+        INTERNATIONAL_4: "INT_HENKAN", INTERNATIONAL_5: "INT_MUHENKAN", INTERNATIONAL_6: "INT_KPJPCOMMA",
+        INTERNATIONAL_7: "INT7", INTERNATIONAL_8: "INT8", INTERNATIONAL_9: "INT9",
+        LANGUAGE_1: "LANG_HANGEUL", LANGUAGE_2: "LANG_HANJA", LANGUAGE_3: "LANG_KATAKANA",
+        LANGUAGE_4: "LANG_HIRAGANA", LANGUAGE_5: "LANG_ZENKAKUHANKAKU", LANGUAGE_6: "LANG6",
+        LANGUAGE_7: "LANG7",         LANGUAGE_8: "LANG8", LANGUAGE_9: "LANG9", LEFT_SHIFT: "LShift",
+        RIGHT_SHIFT: "RShift", LEFT_CONTROL: "LCtrl", RIGHT_CONTROL: "RCtrl", LEFT_ALT: "LAlt",
+        RIGHT_ALT: "RAlt", LEFT_GUI: "LGUI", RIGHT_GUI: "RGUI", KP_NUMLOCK: "KP_NLCK"
+      }));
+      const displayKeycodeName = (code) => keycodeDisplayNames.get(code) || code;
+      const modifierDisplayNames = [
+        [0x01, "LCtrl"], [0x02, "LShift"], [0x04, "LAlt"], [0x08, "LGUI"],
+        [0x10, "RCtrl"], [0x20, "RShift"], [0x40, "RAlt"], [0x80, "RGUI"]
+      ];
+      const modifierCodeNames = [
+        [0x01, "LC"], [0x02, "LS"], [0x04, "LA"], [0x08, "LG"],
+        [0x10, "RC"], [0x20, "RS"], [0x40, "RA"], [0x80, "RG"]
+      ];
+      const elements = {
+        connectButton: document.getElementById("connect-button"),
+        disconnectButton: document.getElementById("disconnect-button"),
+        deviceSaveButton: document.getElementById("device-save-button"),
+        restoreStockButton: document.getElementById("restore-stock-button"),
+        filePicker: document.getElementById("file-picker"),
+        saveButton: document.getElementById("save-button"),
+        status: document.getElementById("status"),
+        layerTabs: document.getElementById("layer-tabs"),
+        keyboard: document.getElementById("keyboard"),
+        palette: document.getElementById("palette"),
+        search: document.getElementById("search"),
+        categoryFilter: document.getElementById("category-filter"),
+        bindingBuilder: document.getElementById("binding-builder"),
+        bindingType: document.getElementById("binding-type"),
+        bindingModifiers: document.querySelectorAll("#binding-modifier-label input[type='checkbox']"),
+        bindingLayer: document.getElementById("binding-layer"),
+        bindingKey: document.getElementById("binding-key"),
+        bindingModifierLabel: document.getElementById("binding-modifier-label"),
+        bindingLayerLabel: document.getElementById("binding-layer-label"),
+        bindingKeyLabel: document.getElementById("binding-key-label"),
+        addBindingButton: document.getElementById("add-binding-button"),
+        selectionHint: document.getElementById("selection-hint")
+      };
+
+      const rpcModulesPromise = Promise.all([
+        import("https://esm.sh/@zmkfirmware/zmk-studio-ts-client@0.0.18?bundle"),
+        import("https://esm.sh/@zmkfirmware/zmk-studio-ts-client@0.0.18/core?bundle")
+      ]).then(([client, core]) => ({ client, core })).catch((error) => ({ error }));
+
+      const state = {
+        source: "",
+        layers: [],
+        activeLayer: 0,
+        selectedCandidate: null,
+        selectedKey: null,
+        candidates: [],
+        candidateBindings: new Map(),
+        customBindings: new Set(),
+        behaviorDefinitions: parseBehaviorDefinitions(`
+        td_CS: tap_dance_1 {
+            compatible = "zmk,behavior-tap-dance";
+            #binding-cells = <0>;
+            bindings = <&kp COMMA>, <&kp SEMI>;
+            label = ",";
+        };
+        td_DC: tap_dance_2 {
+            compatible = "zmk,behavior-tap-dance";
+            #binding-cells = <0>;
+            bindings = <&kp DOT>, <&jp_colon>;
+            label = ".";
+        };
+        td_CME: tap_dance_3 {
+            compatible = "zmk,behavior-tap-dance";
+            #binding-cells = <0>;
+            bindings = <&mt RCTRL MINUS>, <&jp_equal>;
+            label = "/";
+        };
+        jp_colon: jp_colon {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            label = "JP_COLON";
+            bindings = <&kp SINGLE_QUOTE>;
+        };
+        jp_equal: jp_equal {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            label = "JP_EQUAL";
+            bindings = <&kp UNDER>;
+        };
+        jp_amp: jp_amp { compatible = "zmk,behavior-macro"; #binding-cells = <0>; label = "JP_AMP"; bindings = <&kp CARET>; };
+        jp_quote: jp_quote { compatible = "zmk,behavior-macro"; #binding-cells = <0>; label = "JP_QUOTE"; bindings = <&kp AMPERSAND>; };
+        jp_lpar: jp_lpar { compatible = "zmk,behavior-macro"; #binding-cells = <0>; label = "JP_LPAREN"; bindings = <&kp ASTERISK>; };
+        jp_lbrkt: jp_lbrkt { compatible = "zmk,behavior-macro"; #binding-cells = <0>; label = "JP_LBRACKET"; bindings = <&kp RIGHT_BRACKET>; };
+        jp_lbrace: jp_lbrace { compatible = "zmk,behavior-macro"; #binding-cells = <0>; label = "JP_LBRACE"; bindings = <&kp RIGHT_BRACE>; };
+        jp_caret: jp_caret { compatible = "zmk,behavior-macro"; #binding-cells = <0>; label = "JP_CARET"; bindings = <&kp EQUAL>; };
+        jp_baqt: jp_baqt { compatible = "zmk,behavior-macro"; #binding-cells = <0>; label = "JP_BAQT"; bindings = <&kp LEFT_BRACE>; };
+        jp_rpar: jp_rpar { compatible = "zmk,behavior-macro"; #binding-cells = <0>; label = "JP_RPAREN"; bindings = <&kp LEFT_PARENTHESIS>; };
+        jp_rbrkt: jp_rbrkt { compatible = "zmk,behavior-macro"; #binding-cells = <0>; label = "JP_RBRACKET"; bindings = <&kp BACKSLASH>; };
+        jp_rbrace: jp_rbrace { compatible = "zmk,behavior-macro"; #binding-cells = <0>; label = "JP_RBRACE"; bindings = <&kp PIPE>; };
+        jp_dquote: jp_dquote { compatible = "zmk,behavior-macro"; #binding-cells = <0>; label = "JP_DQUOTE"; bindings = <&kp AT>; };
+        jp_yen: jp_yen { compatible = "zmk,behavior-macro"; #binding-cells = <0>; label = "JP_YEN"; bindings = <&kp 0x89>; };
+        jp_plus: jp_plus { compatible = "zmk,behavior-macro"; #binding-cells = <0>; label = "JP_PLUS"; bindings = <&kp COLON>; };
+        jp_tilde: jp_tilde { compatible = "zmk,behavior-macro"; #binding-cells = <0>; label = "JP_TILDE"; bindings = <&kp PLUS>; };
+        jp_pipe: jp_pipe { compatible = "zmk,behavior-macro"; #binding-cells = <0>; label = "JP_PIPE"; bindings = <&kp LS(0x89)>; };
+        jp_at: jp_at { compatible = "zmk,behavior-macro"; #binding-cells = <0>; label = "JP_AT"; bindings = <&kp LEFT_BRACKET>; };
+        jp_aster: jp_aster { compatible = "zmk,behavior-macro"; #binding-cells = <0>; label = "JP_ASTER"; bindings = <&kp DOUBLE_QUOTES>; };
+        jp_under: jp_under { compatible = "zmk,behavior-macro"; #binding-cells = <0>; label = "JP_UNDER"; bindings = <&kp LS(0x87)>; };
+        jp_kana: jp_kana { compatible = "zmk,behavior-macro"; #binding-cells = <0>; label = "JP_KANA"; bindings = <&kp LANGUAGE_1>; };
+        jp_eisu: jp_eisu { compatible = "zmk,behavior-macro"; #binding-cells = <0>; label = "JP_EISU"; bindings = <&kp LANGUAGE_2>; };
+        jp_hanzen: jp_hanzen { compatible = "zmk,behavior-macro"; #binding-cells = <0>; label = "JP_HANZEN"; bindings = <&kp GRAVE>; };
+        `),
+        device: null,
+        candidateList: "zmk",
+        dirty: false
+      };
+
+      for (const layer of layerNumbers) {
+        const option = document.createElement("option");
+        option.value = String(layer);
+        option.textContent = `レイヤー ${layer}`;
+        elements.bindingLayer.append(option);
+      }
+      for (const { code } of keycodeCatalog) {
+        const option = document.createElement("option");
+        option.value = code;
+        option.textContent = `${displayKeycodeName(code)} (${code})`;
+        elements.bindingKey.append(option);
+      }
+
+      function setStatus(message, kind = "") {
+        elements.status.textContent = message;
+        elements.status.className = `status ${kind}`.trim();
+      }
+
+      function updateDeviceSaveButton() {
+        const device = state.device;
+        elements.deviceSaveButton.disabled = !device?.loaded ||
+          !device.dirty || Boolean(device.applying || device.saving || device.restoring);
+      }
+
+      function updateFileSaveButton() {
+        const device = state.device;
+        elements.saveButton.disabled = !device?.loaded || Boolean(device.applying);
+      }
+
+      async function closeSerialTransport(transport, notificationTask) {
+        transport.abortController.abort();
+        if (notificationTask) {
+          await notificationTask.catch((error) => {
+            if (transport.abortController.signal.aborted && error?.name === "AbortError") return;
+            throw error;
+          });
+        }
+        if (!transport.opened && !transport.port.readable && !transport.port.writable) return;
+        const deadline = Date.now() + 3000;
+        while (transport.port.readable?.locked || transport.port.writable?.locked) {
+          if (Date.now() >= deadline) {
+            throw new Error("USB通信ストリームを閉じられませんでした。通信中の処理が終了してから再試行してください。");
+          }
+          await new Promise((resolve) => setTimeout(resolve, 20));
+        }
+        await transport.port.close();
+        transport.opened = false;
+      }
+
+      async function requestSerialTransport() {
+        const port = await navigator.serial.requestPort({});
+        return {
+          port,
+          abortController: new AbortController(),
+          opened: false
+        };
+      }
+
+      async function openSerialTransport(transport) {
+        try {
+          await transport.port.open({ baudRate: 12500 });
+          transport.opened = true;
+        } catch (error) {
+          transport.opened = Boolean(transport.port.readable || transport.port.writable);
+          if (transport.opened) {
+            try {
+              await closeSerialTransport(transport);
+            } catch (closeError) {
+              throw new Error(`USBポートを開けず、後始末にも失敗しました: ${error.message} (後始末: ${closeError.message})`);
+            }
+          }
+          throw new Error(`USBポートを開けませんでした。他のタブのエディター、ZMK Studio、シリアルモニターがポートを使用中でないか確認してください: ${error.message}`);
+        }
+        const info = transport.port.getInfo();
+        transport.label = `${info.usbVendorId?.toLocaleString() || ""}:${info.usbProductId?.toLocaleString() || ""}`;
+        transport.readable = transport.port.readable;
+        transport.writable = transport.port.writable;
+        return transport;
+      }
+
+      function deviceBindingKey(binding) {
+        return `@${binding.behaviorId}:${binding.param1}:${binding.param2}`;
+      }
+
+      function keycodeForUsage(usage) {
+        return keycodeByUsage.get(usage) ||
+          keycodeByUsage.get(usage & 0x00ffffff) ||
+          keycodeByUsage.get(0x70000 | (usage & 0xffff));
+      }
+
+      function decodeDeviceKeycode(encodedKeycode) {
+        const exactCode = keycodeByUsage.get(encodedKeycode);
+        if (exactCode) return { code: exactCode, modifiers: 0 };
+        return {
+          code: keycodeForUsage(encodedKeycode & 0x00ffffff),
+          modifiers: (encodedKeycode >>> 24) & 0xff
+        };
+      }
+
+      function formatDeviceKeycode(encodedKeycode) {
+        const { code, modifiers } = decodeDeviceKeycode(encodedKeycode);
+        const modifierKeyNames = {
+          LEFT_CONTROL: "LCtrl", RIGHT_CONTROL: "RCtrl",
+          LEFT_SHIFT: "LShift", RIGHT_SHIFT: "RShift",
+          LEFT_ALT: "LAlt", RIGHT_ALT: "RAlt",
+          LEFT_GUI: "LGUI", RIGHT_GUI: "RGUI"
+        };
+        if (modifierKeyNames[code]) return modifierKeyNames[code];
+        const key = code ? displayKeycodeName(code) : `Key 0x${encodedKeycode.toString(16).toUpperCase()}`;
+        const prefixes = modifierDisplayNames
+          .filter(([mask]) => modifiers & mask)
+          .map(([, name]) => name);
+        return [...prefixes, key].join("+");
+      }
+
+      function formatDeviceKeycodeExpression(encodedKeycode) {
+        const { code, modifiers } = decodeDeviceKeycode(encodedKeycode);
+        if (!code) return `0x${encodedKeycode.toString(16).toUpperCase()}`;
+        let expression = code;
+        for (const [mask, name] of modifierCodeNames) {
+          if (modifiers & mask) expression = `${name}(${expression})`;
+        }
+        return expression;
+      }
+
+      function normalizeBehaviorName(name) {
+        return name.toLowerCase().replace(/[^a-z0-9]/g, "");
+      }
+
+      function layerBehaviorForName(name) {
+        const normalized = normalizeBehaviorName(name);
+        return layerBehaviorTypes.find(({ code, displayName, label }) =>
+          normalized === normalizeBehaviorName(code) ||
+          normalized === normalizeBehaviorName(label) ||
+          normalized.includes(normalizeBehaviorName(displayName))
+        );
+      }
+
+      function tapDanceForName(name) {
+        const normalized = normalizeBehaviorName(name);
+        return [...state.behaviorDefinitions.values()].find((definition) =>
+          definition.kind === "tapDance" &&
+          (normalizeBehaviorName(definition.code) === normalized ||
+            normalizeBehaviorName(definition.label) === normalized)
+        );
+      }
+
+      function tapDanceForBehavior(behavior) {
+        const device = state.device;
+        const mappedDefinition = device?.tapDanceDefinitionsByBehaviorId?.get(behavior?.id);
+        if (mappedDefinition) return mappedDefinition;
+        if (device?.keymap && behavior?.id !== undefined) {
+          for (const [layerIndex, layer] of device.keymap.layers.entries()) {
+            const sourceBindings = state.layers[layerIndex]?.bindings || [];
+            for (const [keyIndex, binding] of layer.bindings.entries()) {
+              const expression = sourceBindings[keyIndex]?.value;
+              const code = expression?.match(/^&(td_[A-Za-z0-9_]+)/)?.[1];
+              const definition = code && state.behaviorDefinitions.get(code);
+              if (definition?.kind === "tapDance" &&
+                  binding.behaviorId === behavior.id &&
+                  binding.param1 === 0 && binding.param2 === 0) {
+                return definition;
+              }
+            }
+          }
+        }
+        return [behavior.displayName, behavior.name, behavior.label, behavior.behaviorName]
+          .filter(Boolean)
+          .map(tapDanceForName)
+          .find(Boolean);
+      }
+
+      const defaultTapDancePositions = new Map([
+        ["0:22", "td_CME"],
+        ["0:33", "td_CS"],
+        ["0:34", "td_DC"]
+      ]);
+
+      function tapDanceDefinitionsByBehaviorId(keymap) {
+        const definitions = new Map();
+        for (const [position, code] of defaultTapDancePositions) {
+          const [layerIndex, keyIndex] = position.split(":").map(Number);
+          const binding = keymap.layers[layerIndex]?.bindings[keyIndex];
+          const definition = state.behaviorDefinitions.get(code);
+          if (definition && binding?.param1 === 0 && binding?.param2 === 0) {
+            definitions.set(binding.behaviorId, definition);
+          }
+        }
+        return definitions;
+      }
+
+      function parseBehaviorDefinitions(source) {
+        const definitions = new Map();
+        const declarationPattern = /([A-Za-z_][A-Za-z0-9_]*)\s*:\s*[A-Za-z_][A-Za-z0-9_]*\s*\{([\s\S]*?)\s*\};/g;
+        let declaration;
+        while ((declaration = declarationPattern.exec(source)) !== null) {
+          const body = declaration[2];
+          const compatible = body.match(/\bcompatible\s*=\s*"([^"]+)"/)?.[1];
+          if (!compatible?.startsWith("zmk,behavior-")) continue;
+          const bindingText = body.match(/\bbindings\s*=\s*<([\s\S]*?)>\s*;/)?.[1] || "";
+          const bindingStarts = [...bindingText.matchAll(/&[A-Za-z_][A-Za-z0-9_]*/g)];
+          const bindings = bindingStarts.map((match, index) => {
+            const end = bindingStarts[index + 1]?.index ?? bindingText.length;
+            return bindingText.slice(match.index, end).replace(/[\s><,]+$/, "").trim();
+          });
+          const label = body.match(/\blabel\s*=\s*"([^"]+)"/)?.[1] || declaration[1];
+          const definition = {
+            code: declaration[1],
+            label,
+            compatible,
+            kind: compatible === "zmk,behavior-tap-dance" ? "tapDance"
+              : compatible === "zmk,behavior-macro" ? "macro"
+                : "behavior",
+            bindings
+          };
+          definitions.set(definition.code, definition);
+        }
+        return definitions;
+      }
+
+      function tapDanceKeyLabel(definition) {
+        const tapLabels = [];
+        const holdLabels = [];
+        for (const binding of definition.bindings) {
+          const parts = binding.split(/\s+/);
+          const behavior = parts[0]?.slice(1);
+          const args = parts.slice(1);
+          if (behavior === "mt" && args.length > 1) {
+            tapLabels.push(keycodeLabel(args.slice(1).join(" ")));
+            holdLabels.push(args[0]);
+            continue;
+          }
+          const macro = macroDefinitionForName(behavior);
+          if (macro && /^JP_[A-Z0-9_]+$/.test(macro.label)) {
+            const keycode = macro.label.slice(3);
+            tapLabels.push(keycodeDisplayNames.has(keycode) ? displayKeycodeName(keycode) : macro.label);
+            continue;
+          }
+          tapLabels.push(bindingLabel(binding)[0]);
+        }
+        return [...tapLabels, ...holdLabels].join("\n");
+      }
+
+      function behaviorParameterDescription(behavior, parameter, value) {
+        const key = `param${parameter}`;
+        const descriptions = (behavior.metadata || []).flatMap((set) => set[key] || []);
+        return descriptions.find((description) => {
+          if (description.constant !== undefined) return description.constant === value;
+          if (description.range) {
+            return value >= description.range.min && value <= description.range.max;
+          }
+          if (description.hidUsage) return Boolean(keycodeForUsage(value));
+          if (description.layerId) return true;
+          return false;
+        }) || descriptions[0];
+      }
+
+      function formatBehaviorParameter(behavior, parameter, value) {
+        const description = behaviorParameterDescription(behavior, parameter, value);
+        if (!description) return String(value);
+        if (description.hidUsage) return formatDeviceKeycode(value);
+        if (description.layerId) {
+          const layer = state.device?.keymap?.layers.find(({ id }) => id === value);
+          return layer?.name || `レイヤー ${value}`;
+        }
+        if (description.constant !== undefined && description.constant === value) {
+          return description.name;
+        }
+        return `${description.name} ${value}`;
+      }
+
+      function deviceBehaviorLabel(behavior) {
+        const duplicates = [...(state.device?.behaviors.values() || [])]
+          .filter((candidate) => candidate.displayName === behavior.displayName);
+        return duplicates.length > 1 ? `${behavior.displayName} #${behavior.id}` : behavior.displayName;
+      }
+
+      function parseKeymap(source) {
+        const layers = new Map();
+        const layerPattern = /layer_(\d+)\s*\{[\s\S]*?\bbindings\s*=\s*<([\s\S]*?)>\s*;/g;
+        let match;
+
+        while ((match = layerPattern.exec(source)) !== null) {
+          const number = Number(match[1]);
+          if (layers.has(number)) {
+            throw new Error(`レイヤー ${number} が重複しています。`);
+          }
+
+          const content = match[2];
+          const contentStart = match.index + match[0].indexOf(content);
+          const bindingStarts = [...content.matchAll(/&[A-Za-z_][A-Za-z0-9_]*/g)];
+          const bindings = bindingStarts.map((binding, index) => {
+            const start = binding.index;
+            const nextStart = index + 1 < bindingStarts.length ? bindingStarts[index + 1].index : content.length;
+            const raw = content.slice(start, nextStart);
+            const token = raw.trim();
+            if (!token) {
+              throw new Error(`レイヤー ${number} に空のキーがあります。`);
+            }
+            return {
+              value: token,
+              start: contentStart + start,
+              end: contentStart + start + raw.trimEnd().length
+            };
+          });
+
+          layers.set(number, bindings);
+        }
+
+        for (const number of layerNumbers) {
+          if (!layers.has(number)) {
+            throw new Error(`レイヤー ${number} が見つかりません。Tentalice の6レイヤーのキーマップを選択してください。`);
+          }
+          if (layers.get(number).length !== KEYS_PER_LAYER) {
+            throw new Error(`レイヤー ${number} のキー数が${KEYS_PER_LAYER}個ではありません（${layers.get(number).length}個）。`);
+          }
+        }
+        if (layers.size !== LAYER_COUNT) {
+          throw new Error("Tentalice のレイヤー数と一致しません。レイヤーの追加・削除されたファイルは編集できません。");
+        }
+
+        return layerNumbers.map((number) => ({ number, bindings: layers.get(number) }));
+      }
+
+      function findFileFaderSettings(layers) {
+        for (const layer of layers) {
+          for (let start = 0; start <= layer.bindings.length - 7; start++) {
+            const isFaderSettings = layer.bindings.slice(start, start + 7).every((binding) =>
+              /^&fader_layer\s+[0-6]$/.test(binding.value));
+            if (isFaderSettings) return { layer, start };
+          }
+        }
+        return null;
+      }
+
+      function findDeviceFaderSettings(layers, behaviorId) {
+        for (const layer of layers) {
+          for (let start = 0; start <= layer.bindings.length - 7; start++) {
+            const isFaderSettings = layer.bindings.slice(start, start + 7).every((binding) =>
+              binding.behaviorId === behaviorId && binding.param1 <= 6);
+            if (isFaderSettings) return { layer, start };
+          }
+        }
+        return null;
+      }
+
+      function keycodeLabel(expression) {
+        const modifier = expression.match(/^(LC|LS|LA|LG|RC|RS|RA|RG)\((.+)\)$/);
+        if (modifier) {
+          const names = {
+            LC: "LCtrl", LS: "LShift", LA: "LAlt", LG: "LGUI",
+            RC: "RCtrl", RS: "RShift", RA: "RAlt", RG: "RGUI"
+          };
+          return `${names[modifier[1]]}+${keycodeLabel(modifier[2])}`;
+        }
+        return displayKeycodeName(keycodeAliases.get(expression) || expression);
+      }
+
+      function macroDefinitionForName(name) {
+        const normalized = normalizeBehaviorName(name);
+        return [...state.behaviorDefinitions.values()].find((definition) =>
+          definition.kind === "macro" &&
+          normalizeBehaviorName(definition.code) === normalized
+        );
+      }
+
+      function mouseActionLabel(behavior, args) {
+        const action = args.join(" ").toUpperCase();
+        if (behavior === "mkp") {
+          const buttons = {
+            MB1: "左ボタン", LCLK: "左ボタン",
+            MB2: "右ボタン", RCLK: "右ボタン",
+            MB3: "中ボタン", MCLK: "中ボタン",
+            MB4: "戻る", MB5: "進む",
+            "1": "左ボタン", "2": "右ボタン", "4": "中ボタン"
+          };
+          return [buttons[action] || (action ? `マウスボタン ${action}` : "マウス"), "マウス"];
+        }
+        const actions = behavior === "mmv"
+          ? ["MOVE_UP", "MOVE_DOWN", "MOVE_LEFT", "MOVE_RIGHT"]
+          : ["SCRL_UP", "SCRL_DOWN", "SCRL_LEFT", "SCRL_RIGHT"];
+        return [actions.includes(action) ? action : action || "マウス", "マウス"];
+      }
+
+      function isBluetoothLedBehavior(behavior) {
+        return [behavior?.displayName, behavior?.name, behavior?.label, behavior?.behaviorName]
+          .filter(Boolean)
+          .some((name) => /bluetooth.?led|bt.?led/i.test(name));
+      }
+
+      function bluetoothLedCommandValue(command) {
+        return ({
+          BT_CLR: 0,
+          BT_SEL: 3,
+          BT_CLR_ALL: 4
+        })[command.toUpperCase()] ?? null;
+      }
+
+      function bluetoothLedLabel(command, profile = 0) {
+        switch (command) {
+          case 0: return ["CLR", "Bluetooth"];
+          case 3: return [`BT ${profile + 1}`, "Bluetooth"];
+          case 4: return ["CLR ALL", "Bluetooth"];
+          default: return null;
+        }
+      }
+
+      function deviceMouseActionLabel(behavior, value) {
+        const behaviorName = normalizeBehaviorName([
+          behavior.displayName, behavior.name, behavior.label, behavior.behaviorName
+        ].filter(Boolean).join(" "));
+        const isButton = /button|click|mousekey|mkp/.test(behaviorName);
+        if (isButton) {
+          const buttonNames = [
+            [1, "左ボタン"], [2, "右ボタン"], [4, "中ボタン"],
+            [8, "戻るボタン"], [16, "進むボタン"]
+          ];
+          const pressed = buttonNames
+            .filter(([mask]) => (value & mask) !== 0)
+            .map(([, name]) => name);
+          return [pressed.join("+") || "マウスボタン", "マウス"];
+        }
+
+        const encoded = value >>> 0;
+        const x = (encoded >>> 16) & 0xffff;
+        const y = encoded & 0xffff;
+        const signedX = x & 0x8000 ? x - 0x10000 : x;
+        const signedY = y & 0x8000 ? y - 0x10000 : y;
+        const isScroll = /scroll|msc|scrl/.test(behaviorName) ||
+          [Math.abs(signedX), Math.abs(signedY)].includes(10);
+        const prefix = isScroll ? "SCRL" : "MOVE";
+
+        if (signedX && !signedY) {
+          if (isScroll && Math.abs(signedX) === 10) {
+            return [signedX < 0 ? "SCRL_LEFT" : "SCRL_RIGHT", "マウス"];
+          }
+          if (!isScroll && Math.abs(signedX) === 600) {
+            return [signedX < 0 ? "MOVE_LEFT" : "MOVE_RIGHT", "マウス"];
+          }
+          return [`${prefix}_X(${signedX})`, "マウス"];
+        }
+        if (signedY && !signedX) {
+          if (isScroll && Math.abs(signedY) === 10) {
+            return [signedY > 0 ? "SCRL_UP" : "SCRL_DOWN", "マウス"];
+          }
+          if (!isScroll && Math.abs(signedY) === 600) {
+            return [signedY < 0 ? "MOVE_UP" : "MOVE_DOWN", "マウス"];
+          }
+          return [`${prefix}_Y(${signedY})`, "マウス"];
+        }
+        return [String(value), "マウス"];
+      }
+
+      function isMouseBehavior(behavior) {
+        if (!behavior) return false;
+        const names = [behavior.displayName, behavior.name, behavior.label, behavior.behaviorName]
+          .filter(Boolean).join(" ");
+        const metadataNames = (behavior.metadata || []).flatMap((set) =>
+          ["param1", "param2"].flatMap((parameter) =>
+            (set[parameter] || []).map(({ name }) => name || "")
+          )
+        ).join(" ");
+        return /mouse|pointer|scroll|mkp|mmv|msc|scrl(?:up|down|left|right)|move(?:up|down|left|right)|mb[1-5]|[lr]clk|mclk/i
+          .test(`${names} ${metadataNames}`);
+      }
+
+      function specialBindingLabel(behavior, args) {
+        if (["mkp", "mmv", "msc"].includes(behavior)) return mouseActionLabel(behavior, args);
+        if (behavior === "fader_layer") return [`L${args[0] ?? ""}`, "Fader Layer"];
+        if (behavior === "rgb_ug") return [args.join(" ") || "Underglow", "Underglow"];
+        if (behavior === "bt_led") {
+          const command = bluetoothLedCommandValue(args[0] || "");
+          return command === null ? null : bluetoothLedLabel(command, Number(args[1]) || 0);
+        }
+        if (behavior === "bt") return [args.join(" ") || "Bluetooth", "Bluetooth"];
+        if (behavior === "out") return [args.join(" ") || "Output", "Output"];
+        if (behavior === "studio_unlock") return ["Studio Unlock", "その他の動作"];
+        if (behavior === "bootloader") return ["Bootloader", "その他の動作"];
+        return null;
+      }
+
+      function bindingLabel(binding) {
+        if (binding === "&trans") return ["Trans", ""];
+        if (binding === "&none") return ["None", ""];
+        if (binding.startsWith("@") && state.device) {
+          const [behaviorId, param1, param2] = binding.slice(1).split(":").map(Number);
+          const behavior = state.device.behaviors.get(behaviorId);
+          if (!behavior) return [`Behavior ${behaviorId}`, `${param1}, ${param2}`];
+
+          if (/transparent/i.test(behavior.displayName)) return ["Trans", ""];
+          if (isBluetoothLedBehavior(behavior)) return bluetoothLedLabel(param1, param2) || ["Bluetooth LED", "Bluetooth"];
+          if (isMouseBehavior(behavior)) return deviceMouseActionLabel(behavior, param1);
+          if (isKeyPressBehavior(behavior)) {
+            return [formatDeviceKeycode(param1), "キー"];
+          }
+          const layerBehavior = layerBehaviorForName(behavior.displayName);
+          if (layerBehavior) {
+            if (layerBehavior.code === "lt") return [`${formatDeviceKeycode(param2)}\nL${param1}`, "LT"];
+            return [`L${param1}`, ""];
+          }
+          if (/hold.?tap|mod.?tap/i.test(behavior.displayName)) {
+            return [`${formatDeviceKeycode(param2)}\n${formatDeviceKeycode(param1)}`, "MT"];
+          }
+          const tapDance = tapDanceForBehavior(behavior);
+          if ((tapDance || /tap.?dance/i.test(behavior.displayName)) && param1 === 0 && param2 === 0) {
+            return [tapDance ? tapDanceKeyLabel(tapDance) : deviceBehaviorLabel(behavior), "タップダンス"];
+          }
+          const parameters = [param1, param2]
+            .map((value, index) => value ? formatBehaviorParameter(behavior, index + 1, value) : "")
+            .filter(Boolean);
+          if (/fader/i.test(behavior.displayName)) return [`L${param1}`, "Fader Layer"];
+          const label = parameters.join(" ") || deviceBehaviorLabel(behavior);
+          const detail = /underglow|rgb/i.test(behavior.displayName) ? "Underglow"
+            : /bluetooth/i.test(behavior.displayName) ? "Bluetooth"
+              : /fader/i.test(behavior.displayName) ? "Fader Layer"
+                : /mouse/i.test(behavior.displayName) ? "マウス"
+                  : deviceBehaviorLabel(behavior);
+          return [label, detail];
+        }
+        const parts = binding.split(/\s+/);
+        const behavior = parts[0].slice(1);
+        const args = parts.slice(1);
+
+        if (behavior === "kp" && args.length) {
+          return [keycodeLabel(args.join(" ")), "キー"];
+        }
+        const layerBehavior = layerBehaviorTypes.find(({ code }) => code === behavior);
+        if (layerBehavior && args.length) {
+          if (behavior === "lt") return [`${keycodeLabel(args[1] || "SPACE")}\nL${args[0]}`, "LT"];
+          return [`L${args[0]}`, ""];
+        }
+        if (behavior === "mt" && args.length > 1) return [`${keycodeLabel(args[1])}\n${keycodeLabel(args[0])}`, "MT"];
+        const tapDance = tapDanceForName(behavior);
+        if (tapDance) return [tapDanceKeyLabel(tapDance), "タップダンス"];
+        const macro = macroDefinitionForName(behavior);
+        if (macro) return [macro.label, "マクロ"];
+        const special = specialBindingLabel(behavior, args);
+        if (special) return special;
+        if (behavior.startsWith("td_")) return [behavior, "タップダンス"];
+        return [args.length ? args.join(" ") : behavior.toUpperCase(), "その他の動作"];
+      }
+
+      function deviceBindingDisplay(bindingKey) {
+        if (!bindingKey.startsWith("@") || !state.device) return bindingKey;
+        const [behaviorId, param1, param2] = bindingKey.slice(1).split(":").map(Number);
+        const behavior = state.device.behaviors.get(behaviorId);
+        if (!behavior) return `不明な動作 (${behaviorId})`;
+        if (isBluetoothLedBehavior(behavior)) {
+          if (param1 === 3) return `&bt_led BT_SEL ${param2}`;
+          if (param1 === 0) return "&bt_led BT_CLR";
+          if (param1 === 4) return "&bt_led BT_CLR_ALL";
+        }
+        if (isMouseBehavior(behavior)) {
+          const [label] = deviceMouseActionLabel(behavior, param1);
+          return `${label} (${deviceBehaviorLabel(behavior)})`;
+        }
+        if (isKeyPressBehavior(behavior)) {
+          return `&kp ${formatDeviceKeycodeExpression(param1)}`;
+        }
+        const layerBehavior = layerBehaviorForName(behavior.displayName);
+        if (layerBehavior) {
+          const tapKey = layerBehavior.code === "lt"
+            ? ` ${formatDeviceKeycodeExpression(param2)}`
+            : "";
+          return `&${layerBehavior.code} ${param1}${tapKey}`;
+        }
+        if (/hold.?tap|mod.?tap/i.test(behavior.displayName)) {
+          return `&mt ${formatDeviceKeycodeExpression(param1)} ${formatDeviceKeycodeExpression(param2)}`;
+        }
+        const tapDance = tapDanceForBehavior(behavior);
+        if ((tapDance || /tap.?dance/i.test(behavior.displayName)) && param1 === 0 && param2 === 0) {
+          return tapDance ? `&${tapDance.code}` : `&${deviceBehaviorLabel(behavior)}`;
+        }
+        const parameters = [param1, param2]
+          .map((value, index) => value
+            ? formatBehaviorParameter(behavior, index + 1, value)
+            : "")
+          .filter(Boolean);
+        return parameters.length
+          ? `${deviceBehaviorLabel(behavior)} · ${parameters.join(" · ")}`
+          : deviceBehaviorLabel(behavior);
+      }
+
+      const keycodeAliases = new Map([
+        ["ESC", "ESCAPE"], ["RET", "RETURN"], ["ENTER", "RETURN"], ["BSPC", "BACKSPACE"],
+        ["DEL", "DELETE"], ["PG_UP", "PAGE_UP"], ["PG_DN", "PAGE_DOWN"], ["UP", "UP_ARROW"],
+        ["DOWN", "DOWN_ARROW"], ["LEFT", "LEFT_ARROW"], ["RIGHT", "RIGHT_ARROW"],
+        ["LCTRL", "LEFT_CONTROL"], ["RCTRL", "RIGHT_CONTROL"], ["LSHFT", "LEFT_SHIFT"],
+        ["RSHFT", "RIGHT_SHIFT"], ["LALT", "LEFT_ALT"], ["RALT", "RIGHT_ALT"],
+        ["LGUI", "LEFT_GUI"], ["RGUI", "RIGHT_GUI"], ["EXCL", "EXCLAMATION"],
+        ["DLLR", "DOLLAR"], ["PRCNT", "PERCENT"], ["KP_NUM", "KP_NUMLOCK"],
+        ["N0", "NUMBER_0"], ["N1", "NUMBER_1"], ["N2", "NUMBER_2"],
+        ["N3", "NUMBER_3"], ["N4", "NUMBER_4"], ["N5", "NUMBER_5"],
+        ["N6", "NUMBER_6"], ["N7", "NUMBER_7"], ["N8", "NUMBER_8"], ["N9", "NUMBER_9"],
+        ["DOT", "PERIOD"], ["SEMI", "SEMICOLON"],
+        ["KP_N0", "KP_NUMBER_0"], ["KP_N1", "KP_NUMBER_1"], ["KP_N2", "KP_NUMBER_2"],
+        ["KP_N3", "KP_NUMBER_3"], ["KP_N4", "KP_NUMBER_4"], ["KP_N5", "KP_NUMBER_5"],
+        ["KP_N6", "KP_NUMBER_6"], ["KP_N7", "KP_NUMBER_7"], ["KP_N8", "KP_NUMBER_8"],
+        ["KP_N9", "KP_NUMBER_9"], ["KP_SLASH", "KP_DIVIDE"], ["KP_ASTERISK", "KP_MULTIPLY"]
+      ]);
+      const modifierMasks = new Map([
+        ["LC", 0x01], ["LS", 0x02], ["LA", 0x04], ["LG", 0x08],
+        ["RC", 0x10], ["RS", 0x20], ["RA", 0x40], ["RG", 0x80]
+      ]);
+
+      function keyUsageFromExpression(expression) {
+        const modifier = expression.match(/^(LC|LS|LA|LG|RC|RS|RA|RG)\((.+)\)$/);
+        if (modifier) {
+          const innerUsage = keyUsageFromExpression(modifier[2]);
+          if (innerUsage === null) return null;
+          const mask = modifierMasks.get(modifier[1]);
+          return ((mask << 24) | innerUsage) >>> 0;
+        }
+        const code = keycodeAliases.get(expression) || expression;
+        return keycodeByCode.get(code)?.usage ?? null;
+      }
+
+      function behaviorForBindingName(name) {
+        const normalized = normalizeBehaviorName(name);
+        const behaviorAliases = {
+          bt: /bluetooth/i,
+          btled: /bluetooth.?led/i,
+          out: /output/i,
+          rgbug: /rgb.*underglow/i,
+          faderlayer: /fader.*layer/i,
+          msc: /mouse.*scroll/i,
+          mmv: /mouse.*move/i,
+          mkp: /mouse.*(button|click|key|press)/i,
+          mousegesture: /mouse.?gesture/i,
+          studiounlock: /studio.*unlock/i,
+          bootloader: /bootloader/i,
+          trans: /transparent/i,
+          none: /none/i
+        };
+        const behaviors = [...(state.device?.behaviors.values() || [])];
+        const matchingAlias = behaviorAliases[normalized];
+        return behaviors.find((behavior) =>
+          [behavior.name, behavior.displayName, behavior.label, behavior.behaviorName]
+            .filter((alias) => typeof alias === "string")
+            .some((alias) => normalizeBehaviorName(alias) === normalized)
+        ) || (matchingAlias && behaviors.find(({ displayName }) => matchingAlias.test(displayName)));
+      }
+
+      function keyPressBehavior() {
+        const behaviors = [...(state.device?.behaviors.values() || [])];
+        return behaviors.find((behavior) =>
+          (behavior.metadata || []).some((set) =>
+            (set.param1 || []).some((description) => Boolean(description.hidUsage))
+          )
+        ) || behaviors.find((behavior) => /key press/i.test(behavior.displayName));
+      }
+
+      function isKeyPressBehavior(behavior) {
+        return Boolean(behavior && (
+          behavior.id === keyPressBehavior()?.id ||
+          /key press/i.test(behavior.displayName)
+        ));
+      }
+
+      function parameterFromExpression(behavior, parameter, expression) {
+        if (isBluetoothLedBehavior(behavior)) {
+          if (parameter === 1) return bluetoothLedCommandValue(expression);
+          if (parameter === 2 && /^\d+$/.test(expression)) return Number(expression);
+          return null;
+        }
+        const descriptions = (behavior.metadata || []).flatMap((set) => set[`param${parameter}`] || []);
+        const matchingConstant = descriptions.find((description) =>
+          description.constant !== undefined &&
+          normalizeBehaviorName(description.name) === normalizeBehaviorName(expression)
+        );
+        if (matchingConstant) return matchingConstant.constant;
+        if (parameter === 1 && isMouseBehavior(behavior)) {
+          const mouseButtonMasks = {
+            MB1: 1, LCLK: 1, MB2: 2, RCLK: 2, MB3: 4, MCLK: 4,
+            MB4: 8, MB5: 16
+          };
+          const buttonMask = mouseButtonMasks[expression.toUpperCase()];
+          if (buttonMask !== undefined && /button|click|mousekey|mkp/i.test([
+            behavior.displayName, behavior.name, behavior.label, behavior.behaviorName
+          ].filter(Boolean).join(" "))) {
+            return buttonMask;
+          }
+        }
+        const description = descriptions.find((entry) =>
+          entry.hidUsage || entry.layerId || entry.range
+        );
+        if (description?.hidUsage) {
+          const usage = keyUsageFromExpression(expression);
+          if (usage !== null) return usage;
+        }
+        if (description?.layerId || description?.range) {
+          if (/^\d+$/.test(expression)) return Number(expression);
+        }
+        if (!descriptions.length && /^\d+$/.test(expression)) return Number(expression);
+        return null;
+      }
+
+      function deviceBindingFromExpression(expression) {
+        const device = state.device;
+        if (!device?.loaded) return null;
+        const parts = expression.trim().split(/\s+/);
+        const name = parts[0]?.slice(1);
+        const args = parts.slice(1);
+        if (name === "trans" || name === "none") {
+          const behavior = behaviorForBindingName(name);
+          if (behavior) return { behaviorId: behavior.id, param1: 0, param2: 0 };
+          return device.keymap.layers.flatMap((layer) => layer.bindings).find((binding) =>
+            bindingLabel(deviceBindingKey(binding))[0] === (name === "trans" ? "Trans" : "None")
+          ) || null;
+        }
+
+        const behavior = name === "kp"
+          ? keyPressBehavior()
+          : layerBehaviorForName(name)
+            ? [...device.behaviors.values()].find((item) =>
+              layerBehaviorForName(item.displayName)?.code === layerBehaviorForName(name).code
+            )
+            : name === "mt"
+              ? [...device.behaviors.values()].find((item) => /hold.?tap|mod.?tap/i.test(item.displayName))
+              : tapDanceForName(name)
+                ? [...device.behaviors.values()].find((item) => tapDanceForBehavior(item)?.code === name)
+                : behaviorForBindingName(name);
+        if (!behavior) return null;
+
+        if (isKeyPressBehavior(behavior) && args.length === 1) {
+          const usage = keyUsageFromExpression(args[0]);
+          return usage === null ? null : { behaviorId: behavior.id, param1: usage, param2: 0 };
+        }
+
+        const layerBehavior = layerBehaviorForName(behavior.displayName);
+        if (layerBehavior && args.length >= 1 && /^\d+$/.test(args[0])) {
+          const keyUsage = layerBehavior.code === "lt" && args[1]
+            ? keyUsageFromExpression(args[1])
+            : 0;
+          if (layerBehavior.code === "lt" && keyUsage === null) return null;
+          return {
+            behaviorId: behavior.id,
+            param1: Number(args[0]),
+            param2: keyUsage || 0
+          };
+        }
+
+        if (/hold.?tap|mod.?tap/i.test(behavior.displayName) && args.length >= 2) {
+          const param1 = keyUsageFromExpression(args[0]);
+          const param2 = keyUsageFromExpression(args.slice(1).join(" "));
+          return param1 === null || param2 === null
+            ? null
+            : { behaviorId: behavior.id, param1, param2 };
+        }
+
+        if (tapDanceForBehavior(behavior) && args.length === 0) {
+          return { behaviorId: behavior.id, param1: 0, param2: 0 };
+        }
+
+        const params = args.map((argument, index) =>
+          parameterFromExpression(behavior, index + 1, argument)
+        );
+        if (params.some((value) => value === null) || params.length > 2) return null;
+        return {
+          behaviorId: behavior.id,
+          param1: params[0] || 0,
+          param2: params[1] || 0
+        };
+      }
+
+      function candidateGroupsForList() {
+        let groups;
+        if (state.candidateList === "zmk") {
+          groups = officialKeycodeGroups.map(([category, codes]) => [
+            officialKeycodeGroupLabels.get(category) || category,
+            codes.split(" ").filter((code) => keycodeByCode.has(code)).map((code) => `&kp ${code}`)
+          ]);
+        } else if (state.candidateList === "tentalice") {
+          groups = tentaliceBindingGroups.map(([group, expressions]) => {
+            if (group === "マクロ" || group === "タップダンス") {
+              const kind = group === "マクロ" ? "macro" : "tapDance";
+              const defined = [...state.behaviorDefinitions.values()]
+                .filter((definition) => definition.kind === kind)
+                .map((definition) => `&${definition.code}`);
+              return [group, [...new Set([...expressions, ...defined])]];
+            }
+            return [group, expressions];
+          });
+        } else {
+          groups = [["独自キーコード", [...state.customBindings]]];
+        }
+
+        const search = elements.search.value.trim().toLowerCase();
+        const result = [];
+        const seen = new Set();
+        state.candidateBindings = new Map();
+        for (const [group, expressions] of groups) {
+          const candidates = [];
+          for (const expression of expressions) {
+            let candidate = expression;
+            if (state.device) {
+              const binding = deviceBindingFromExpression(expression);
+              if (!binding) continue;
+              candidate = deviceBindingKey(binding);
+              state.candidateBindings.set(candidate, binding);
+            }
+            if (seen.has(candidate)) continue;
+            seen.add(candidate);
+            const [label, detail] = bindingLabel(candidate);
+            const searchable = `${expression} ${deviceBindingDisplay(candidate)} ${label} ${detail}`.toLowerCase();
+            if (!searchable.includes(search)) continue;
+            candidates.push(candidate);
+          }
+          if (candidates.length) result.push({ group, candidates });
+        }
+        state.candidates = result.flatMap(({ candidates }) => candidates);
+        return result;
+      }
+
+      function refreshCandidates() {
+        const candidates = new Map();
+        if (state.device?.keymap) {
+          for (const layer of state.device.keymap.layers) {
+            for (const binding of layer.bindings) {
+              const key = deviceBindingKey(binding);
+              candidates.set(key, binding);
+            }
+          }
+        }
+        state.candidateBindings = candidates;
+        renderPalette();
+      }
+
+      function renderLayerTabs() {
+        elements.layerTabs.replaceChildren();
+        const layers = state.device?.keymap?.layers ?? layerNumbers.map((number) => ({ name: `レイヤー ${number}` }));
+        for (const [number, layer] of layers.entries()) {
+          const tab = document.createElement("button");
+          tab.type = "button";
+          tab.className = "layer-tab";
+          tab.textContent = layer.name || `レイヤー ${number}`;
+          tab.setAttribute("aria-pressed", String(state.activeLayer === number));
+          tab.addEventListener("click", () => {
+            state.activeLayer = number;
+            state.selectedCandidate = null;
+            state.selectedKey = null;
+            elements.selectionHint.textContent = "候補を選択してキーに割り当てます。ドラッグにも対応しています。";
+            renderPalette();
+            renderLayerTabs();
+            renderKeyboard();
+          });
+          elements.layerTabs.append(tab);
+        }
+      }
+
+      function renderKeyboard() {
+        elements.keyboard.replaceChildren();
+        const layer = state.device?.keymap?.layers[state.activeLayer] ?? state.layers[state.activeLayer];
+        const bindings = layer?.bindings ?? Array(KEYS_PER_LAYER).fill(null);
+
+        bindings.forEach((binding, index) => {
+          const position = physicalKeys[index];
+          const key = document.createElement("button");
+          const bindingValue = binding ? state.device ? deviceBindingKey(binding) : binding.value : "";
+          const bindingDisplay = binding ? deviceBindingDisplay(bindingValue) : "";
+          const [label, detail] = binding ? bindingLabel(bindingValue) : ["", ""];
+          key.type = "button";
+          key.disabled = !binding || Boolean(state.device?.applying);
+          key.className = `key${!binding ? " placeholder" : bindingValue === "&trans" || label === "Trans" ? " transparent" : ""}${state.selectedKey === index ? " selected" : ""}`;
+          key.style.left = `${position.x * KEY_UNIT}px`;
+          key.style.top = `${position.y * KEY_UNIT}px`;
+          key.style.width = `${position.w * KEY_UNIT}px`;
+          key.style.height = `${position.h * KEY_UNIT}px`;
+          key.style.transformOrigin = `${(position.rx - position.x) * KEY_UNIT}px ${(position.ry - position.y) * KEY_UNIT}px`;
+          key.style.transform = `rotate(${position.r}deg)`;
+          key.title = binding
+            ? `キー ${index + 1}: ${state.device ? `${label} (${bindingDisplay})` : bindingValue}${detail ? ` · ${detail}` : ""}`
+            : `キー ${index + 1}`;
+          key.setAttribute("aria-label", key.title);
+          key.innerHTML = `<span class="key-index">${index + 1}</span><span class="key-label"></span><span class="key-detail"></span>`;
+          key.querySelector(".key-label").textContent = label;
+          key.querySelector(".key-detail").textContent = detail;
+          if (!binding) {
+            elements.keyboard.append(key);
+            return;
+          }
+          key.addEventListener("click", () => {
+            if (state.selectedCandidate) {
+              assignBinding(index, state.selectedCandidate);
+            } else {
+              state.selectedKey = index;
+              renderKeyboard();
+              elements.selectionHint.textContent = `キー ${index + 1} を選択中 · ${bindingDisplay || bindingValue}`;
+            }
+          });
+          key.addEventListener("dragover", (event) => {
+            if (state.selectedCandidate || event.dataTransfer.types.includes("text/plain")) {
+              event.preventDefault();
+              key.classList.add("drop-target");
+            }
+          });
+          key.addEventListener("dragleave", () => key.classList.remove("drop-target"));
+          key.addEventListener("drop", (event) => {
+            event.preventDefault();
+            key.classList.remove("drop-target");
+            const value = event.dataTransfer.getData("text/plain");
+            if (state.device
+              ? value.startsWith("@") || isValidBinding(value)
+              : isValidBinding(value)) {
+              assignBinding(index, value);
+            }
+          });
+          elements.keyboard.append(key);
+        });
+      }
+
+      function renderKeyboardFader() {
+        elements.keyboard.querySelector(".keyboard-fader")?.remove();
+        const device = state.device;
+        const fileFaderSettings = !device ? findFileFaderSettings(state.layers) : null;
+        const deviceFaderSettings = device?.loaded && device.faderSettingsLayer
+          ? { layer: device.faderSettingsLayer, start: device.faderSettingsStart }
+          : null;
+        const faderSettings = deviceFaderSettings || fileFaderSettings;
+        const supported = Boolean(faderSettings);
+        const fader = document.createElement("div");
+        fader.className = "keyboard-fader";
+        fader.setAttribute("role", "group");
+        fader.setAttribute("aria-label", "中央フェーダー。目盛りをクリックして割り当てを変更");
+        const title = document.createElement("span");
+        title.className = "keyboard-fader-title";
+        title.textContent = "FADER";
+        fader.append(title);
+
+        const track = document.createElement("div");
+        track.className = "keyboard-fader-track";
+        track.setAttribute("aria-hidden", "true");
+        fader.append(track);
+
+        const ledColors = ["#43aaff", "#37d6ff", "#4ae477", "#fff4c5", "#ffdf4d", "#ff9c3d", "#ff5847"];
+        for (let visualPosition = 6; visualPosition >= 0; visualPosition--) {
+          const row = 8 - visualPosition;
+          const led = document.createElement("span");
+          led.className = "keyboard-fader-led";
+          led.style.setProperty("--led-color", ledColors[6 - visualPosition]);
+          led.style.gridRow = String(row);
+          led.setAttribute("aria-hidden", "true");
+          fader.append(led);
+
+          const binding = faderSettings?.layer.bindings[faderSettings.start + visualPosition];
+          const targetLayer = device?.loaded
+            ? binding?.param1
+            : Number(binding?.value.match(/^&fader_layer\s+([0-6])$/)?.[1]);
+          const point = document.createElement("button");
+          point.type = "button";
+          point.className = "keyboard-fader-point";
+          point.style.gridRow = String(row);
+          point.disabled = !supported || Boolean(device?.saving);
+          point.textContent = Number.isFinite(targetLayer) ? `L${targetLayer}` : "—";
+          point.title = supported
+            ? `フェーダー位置 ${visualPosition + 1}（${visualPosition === 6 ? "上端" : visualPosition === 0 ? "下端" : ""}）: レイヤー ${targetLayer}。クリックで次のレイヤーに変更`
+            : "このキーマップには編集可能なフェーダー設定がありません";
+          point.setAttribute("aria-label", point.title);
+          point.addEventListener("click", () => {
+            if (supported) void assignFaderLayer(visualPosition, (targetLayer + 1) % 7);
+          });
+          fader.append(point);
+        }
+
+        const powerSwitch = document.createElement("div");
+        powerSwitch.className = "keyboard-power-switch";
+        powerSwitch.setAttribute("role", "img");
+        powerSwitch.setAttribute("aria-label", "電源オン・オフスイッチのイラスト");
+        powerSwitch.textContent = "";
+        fader.append(powerSwitch);
+
+        elements.keyboard.append(fader);
+      }
+
+      function renderPalette() {
+        const groups = candidateGroupsForList();
+        elements.palette.replaceChildren();
+
+        if (!groups.length) {
+          const empty = document.createElement("p");
+          empty.className = "empty";
+          empty.textContent = "一致する候補がありません。";
+          elements.palette.append(empty);
+          return;
+        }
+
+        for (const { group, candidates } of groups) {
+          const heading = document.createElement("div");
+          heading.className = "palette-group-heading";
+          heading.textContent = group;
+          elements.palette.append(heading);
+          for (const candidate of candidates) {
+            const [label, detail] = bindingLabel(candidate);
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = `candidate${state.selectedCandidate === candidate ? " selected" : ""}`;
+            button.draggable = true;
+            button.disabled = Boolean(state.device?.applying);
+            button.title = detail ? `${label.replaceAll("\n", " / ")} · ${detail}` : label.replaceAll("\n", " / ");
+            button.setAttribute("aria-label", button.title);
+            button.innerHTML = '<span class="candidate-label"></span>';
+            button.querySelector(".candidate-label").textContent = label;
+            button.addEventListener("click", () => {
+              state.selectedCandidate = candidate;
+              state.selectedKey = null;
+              elements.selectionHint.textContent = `選択中: ${button.title} · 割り当てるキーをクリックしてください。`;
+              renderPalette();
+              renderKeyboard();
+            });
+            button.addEventListener("dragstart", (event) => {
+              event.dataTransfer.setData("text/plain", candidate);
+              event.dataTransfer.effectAllowed = "copy";
+            });
+            elements.palette.append(button);
+          }
+        }
+      }
+
+      function updateBindingBuilder() {
+        const enabled = state.candidateList === "custom";
+        elements.bindingBuilder.hidden = !enabled;
+        if (!enabled) return;
+        const type = elements.bindingType.value;
+        const hasModifier = type === "modified-kp" || type === "mt";
+        const hasLayer = ["mo", "lt", "tog", "to"].includes(type);
+        const hasKey = ["kp", "modified-kp", "mt", "lt"].includes(type);
+        elements.bindingModifierLabel.hidden = !hasModifier;
+        const modifierTitle = elements.bindingModifierLabel.querySelector("span");
+        modifierTitle.textContent = type === "mt" ? "モッド（1つ選択）" : "モッド（複数選択可）";
+        elements.bindingLayerLabel.hidden = !hasLayer;
+        elements.bindingKeyLabel.hidden = !hasKey;
+      }
+
+      function bindingFromBuilder() {
+        const type = elements.bindingType.value;
+        const key = elements.bindingKey.value;
+        const modifiers = [...elements.bindingModifiers]
+          .filter((checkbox) => checkbox.checked)
+          .map((checkbox) => checkbox.value);
+        const layer = elements.bindingLayer.value;
+        if (type === "kp") return `&kp ${key}`;
+        if (type === "modified-kp") {
+          if (!modifiers.length) {
+            setStatus("モッド＋キーを作成するには、モッドを1つ以上選択してください。", "error");
+            return null;
+          }
+          const modifierCodes = { LCTRL: "LC", LSHFT: "LS", LALT: "LA", LGUI: "LG",
+            RCTRL: "RC", RSHFT: "RS", RALT: "RA", RGUI: "RG" };
+          return `&kp ${modifiers.reduce((expression, modifier) =>
+            `${modifierCodes[modifier]}(${expression})`, key)}`;
+        }
+        if (type === "mt") return `&mt ${modifiers[0] || "LCTRL"} ${key}`;
+        if (type === "lt") return `&lt ${layer} ${key}`;
+        return `&${type} ${layer}`;
+      }
+
+      function addBindingCandidate(value) {
+        if (!isValidBinding(value)) {
+          setStatus("バインディング形式が正しくありません。", "error");
+          return false;
+        }
+        if (state.device && !state.device.loaded) {
+          setStatus("キーボードのキーマップを読み込んでから独自候補を作成してください。", "error");
+          return false;
+        }
+        if (state.device && !deviceBindingFromExpression(value)) {
+            setStatus(`このキーボードでは「${value}」を設定できません。Studio対応ビヘイビアか、パラメーターを確認してください。`, "error");
+            return false;
+        }
+        state.customBindings.add(value);
+        state.candidateList = "custom";
+        elements.categoryFilter.value = "custom";
+        updateBindingBuilder();
+        const binding = state.device ? deviceBindingFromExpression(value) : null;
+        state.selectedCandidate = binding ? deviceBindingKey(binding) : value;
+        state.selectedKey = null;
+        elements.selectionHint.textContent = `選択中: ${value} · 割り当てるキーをクリックしてください。`;
+        renderPalette();
+        renderKeyboard();
+        return true;
+      }
+
+      function isValidBinding(value) {
+        return /^&[A-Za-z_][A-Za-z0-9_]*(?:\s+[A-Za-z0-9_(),.+-]+)*$/.test(value);
+      }
+
+      function assignBinding(index, value) {
+        if (!isValidBinding(value)) {
+          if (!state.device || !value.startsWith("@")) {
+            setStatus("キー候補の形式が正しくありません。", "error");
+            return;
+          }
+        }
+        if (state.device) {
+          void assignDeviceBinding(index, value);
+          return;
+        }
+        const binding = state.layers[state.activeLayer].bindings[index];
+        if (binding.value === value) {
+          state.selectedKey = index;
+          renderKeyboard();
+          return;
+        }
+
+        state.source = state.source.slice(0, binding.start) + value + state.source.slice(binding.end);
+        try {
+          state.layers = parseKeymap(state.source);
+        } catch (error) {
+          setStatus(`編集内容を適用できませんでした: ${error.message}`, "error");
+          return;
+        }
+        state.dirty = true;
+        state.selectedKey = index;
+        updateFileSaveButton();
+        setStatus(`レイヤー ${state.activeLayer} のキー ${index + 1} を変更しました。保存してファイルをダウンロードしてください。`, "success");
+        refreshCandidates();
+        renderKeyboard();
+      }
+
+      async function assignDeviceBinding(index, candidate) {
+        const device = state.device;
+        const layer = device?.keymap.layers[state.activeLayer];
+        if (!device || !layer) {
+          setStatus("接続中のキーマップから候補を取得できません。再接続してください。", "error");
+          return;
+        }
+
+        let binding = device.candidateBindings.get(candidate);
+        if (!binding && candidate.startsWith("@")) {
+          const [behaviorId, param1, param2] = candidate.slice(1).split(":").map(Number);
+          if (Number.isInteger(behaviorId) && Number.isFinite(param1) &&
+              Number.isFinite(param2) && device.behaviors.has(behaviorId)) {
+            binding = { behaviorId, param1, param2 };
+          }
+        } else if (!binding) {
+          binding = deviceBindingFromExpression(candidate);
+        }
+        if (!binding) {
+          setStatus(`候補「${candidate}」を接続中のファームウェアの動作に変換できません。キー候補を再選択してください。`, "error");
+          return;
+        }
+
+        await setDeviceLayerBinding(layer, index, binding);
+      }
+
+      async function assignFaderLayer(position, targetLayer) {
+        const device = state.device;
+        if (device?.loaded && device.faderSettingsLayer && device.faderBehaviorId) {
+          const binding = {
+            behaviorId: device.faderBehaviorId,
+            param1: targetLayer,
+            param2: 0
+          };
+          await setDeviceLayerBinding(device.faderSettingsLayer, device.faderSettingsStart + position, binding);
+          return;
+        }
+
+        const faderSettings = findFileFaderSettings(state.layers);
+        const binding = faderSettings?.layer.bindings[faderSettings.start + position];
+        if (!binding || !/^&fader_layer\s+[0-6]$/.test(binding.value)) return;
+        const value = `&fader_layer ${targetLayer}`;
+        state.source = state.source.slice(0, binding.start) + value + state.source.slice(binding.end);
+        try {
+          state.layers = parseKeymap(state.source);
+        } catch (error) {
+          setStatus(`フェーダー設定を適用できませんでした: ${error.message}`, "error");
+          return;
+        }
+        state.dirty = true;
+        updateFileSaveButton();
+        setStatus(`フェーダー位置 ${position + 1} をレイヤー ${targetLayer} に変更しました。保存してファイルをダウンロードしてください。`, "success");
+        renderKeyboardFader();
+      }
+
+      async function setDeviceLayerBinding(layer, index, binding) {
+        const device = state.device;
+        if (!device || device.applying) return;
+        try {
+          await writeDeviceLayerBinding(layer, index, binding);
+          state.selectedKey = index;
+          updateImportedSourceBinding(layer, index, binding);
+          setStatus("キーボードへ変更を適用しました。電源を切る前に「キーボードに保存」を押してください。", "success");
+          refreshCandidates();
+          renderKeyboard();
+        } catch (error) {
+          setStatus(`キーボードへ変更を適用できませんでした: ${error.message}`, "error");
+        }
+      }
+
+      async function writeDeviceLayerBinding(layer, index, binding) {
+        const device = state.device;
+        if (!device) throw new Error("キーボードが接続されていません。");
+        const response = await device.client.call_rpc(device.connection, {
+          keymap: {
+            setLayerBinding: {
+              layerId: layer.id,
+              keyPosition: index,
+              binding
+            }
+          }
+        });
+        const result = response.keymap?.setLayerBinding;
+        if (result !== 0) {
+          const reasons = {
+            1: "キー位置が無効です。キーマップを再読み込みしてください。",
+            2: "ビヘイビアIDがファームウェアにありません。キーマップとファームウェアの組み合わせを確認してください。",
+            3: "ビヘイビアのパラメーターがファームウェアの定義に合いません。モッドやレイヤーの設定値を確認してください。"
+          };
+          const reason = reasons[result] || `キー変更に失敗しました (応答: ${result ?? "なし"})`;
+          const behaviorName = device.behaviors.get(binding.behaviorId)?.displayName || "不明";
+          throw new Error(`${reason} (動作: ${behaviorName}, ID: ${binding.behaviorId}, param1: ${binding.param1} / 0x${binding.param1.toString(16).toUpperCase()}, param2: ${binding.param2})`);
+        }
+        layer.bindings[index] = { ...binding };
+        device.dirty = true;
+        updateDeviceSaveButton();
+      }
+
+      function updateImportedSourceBinding(layer, index, binding) {
+        const layerIndex = state.device?.keymap.layers.indexOf(layer) ?? -1;
+        const sourceBinding = state.layers[layerIndex]?.bindings[index];
+        const value = binding.behaviorId === state.device?.faderBehaviorId
+          ? `&fader_layer ${binding.param1}`
+          : deviceBindingDisplay(deviceBindingKey(binding));
+        if (!sourceBinding || !isValidBinding(value)) return;
+        state.source = state.source.slice(0, sourceBinding.start) + value + state.source.slice(sourceBinding.end);
+        try {
+          state.layers = parseKeymap(state.source);
+          state.dirty = true;
+          updateFileSaveButton();
+        } catch (error) {
+          setStatus(`キーボードには適用しましたが、ファイル用の変換に失敗しました: ${error.message}`, "error");
+        }
+      }
+
+      async function applyImportedKeymap(imported) {
+        const device = state.device;
+        if (!device?.loaded || device.applying) {
+          setStatus("キーボードのキーマップを読み込んでからインポートしてください。", "error");
+          return false;
+        }
+
+        const previousDefinitions = state.behaviorDefinitions;
+        state.behaviorDefinitions = imported.behaviorDefinitions;
+        const assignments = [];
+        try {
+          for (const [layerIndex, fileLayer] of imported.layers.entries()) {
+            const deviceLayer = device.keymap.layers[layerIndex];
+            for (const [keyPosition, fileBinding] of fileLayer.bindings.entries()) {
+              const binding = deviceBindingFromExpression(fileBinding.value);
+              if (!binding || !device.behaviors.has(binding.behaviorId)) {
+                throw new Error(`レイヤー ${layerIndex}・キー ${keyPosition + 1} の「${fileBinding.value}」は、このファームウェアでは設定できません。`);
+              }
+              assignments.push({ deviceLayer, keyPosition, binding });
+            }
+          }
+        } catch (error) {
+          state.behaviorDefinitions = previousDefinitions;
+          setStatus(`ファイルを適用できません: ${error.message} 変更はまだキーボードへ送信されていません。`, "error");
+          return false;
+        }
+
+        if (device.dirty && !window.confirm("キーボードに未保存の変更があります。インポートしたキーマップで上書きしますか？")) {
+          state.behaviorDefinitions = previousDefinitions;
+          return false;
+        }
+
+        device.applying = true;
+        updateDeviceSaveButton();
+        updateFileSaveButton();
+        elements.disconnectButton.disabled = true;
+        elements.filePicker.disabled = true;
+        elements.addBindingButton.disabled = true;
+        renderPalette();
+        renderKeyboard();
+        try {
+          let completed = 0;
+          for (const assignment of assignments) {
+            const current = assignment.deviceLayer.bindings[assignment.keyPosition];
+            const next = assignment.binding;
+            if (current.behaviorId !== next.behaviorId ||
+                current.param1 !== next.param1 || current.param2 !== next.param2) {
+              await writeDeviceLayerBinding(assignment.deviceLayer, assignment.keyPosition, next);
+            }
+            completed++;
+            if (completed % 10 === 0 || completed === assignments.length) {
+              setStatus(`キーマップを適用しています: ${completed}/${assignments.length} キー`);
+            }
+          }
+          state.source = imported.source;
+          state.fileName = imported.fileName;
+          state.layers = imported.layers;
+          state.behaviorDefinitions = imported.behaviorDefinitions;
+          state.dirty = false;
+          updateFileSaveButton();
+          setStatus(device.dirty
+            ? "キーマップをキーボードへ適用しました。「キーボードに保存」で本体へ保存してください。"
+            : "インポートしたキーマップはキーボードと同じ内容です。", "success");
+          refreshCandidates();
+          renderKeyboard();
+          return true;
+        } catch (error) {
+          setStatus(`キーマップの適用が途中で失敗しました: ${error.message} 変更済みのキーはキーボード上に残っています。`, "error");
+          return false;
+        } finally {
+          device.applying = false;
+          updateDeviceSaveButton();
+          updateFileSaveButton();
+          elements.disconnectButton.disabled = false;
+          elements.filePicker.disabled = false;
+          elements.addBindingButton.disabled = false;
+          renderPalette();
+          renderKeyboard();
+        }
+      }
+
+      async function loadDeviceKeymap(device) {
+        if (device.loading || device.loaded || state.device !== device) return;
+        device.loading = true;
+        setStatus("キーボードのキーマップとキー候補を読み込んでいます。");
+        try {
+          const keymapResponse = await device.client.call_rpc(device.connection, {
+            keymap: { getKeymap: true }
+          });
+          const keymap = keymapResponse.keymap?.getKeymap;
+          if (!keymap || keymap.layers.length !== LAYER_COUNT) {
+            throw new Error(`Tentaliceの6レイヤーを取得できませんでした (${keymap?.layers.length ?? 0}レイヤー)。Studio対応ファームウェアを確認してください。`);
+          }
+          for (const [index, layer] of keymap.layers.entries()) {
+            if (layer.bindings.length !== KEYS_PER_LAYER) {
+              throw new Error(`レイヤー ${index} のキー数が${KEYS_PER_LAYER}個ではありません (${layer.bindings.length}個)。`);
+            }
+          }
+
+          const behaviorList = await device.client.call_rpc(device.connection, {
+            behaviors: { listAllBehaviors: true }
+          });
+          const behaviorIds = behaviorList.behaviors?.listAllBehaviors?.behaviors ?? [];
+          const behaviors = new Map();
+          for (const behaviorId of behaviorIds) {
+            const response = await device.client.call_rpc(device.connection, {
+              behaviors: { getBehaviorDetails: { behaviorId } }
+            });
+            const details = response.behaviors?.getBehaviorDetails;
+            if (details) {
+              const id = Number(details.id ?? behaviorId);
+              if (Number.isInteger(id)) behaviors.set(id, { ...details, id });
+            }
+          }
+          if (state.device !== device) return;
+
+          device.keymap = keymap;
+          device.behaviors = behaviors;
+          device.tapDanceDefinitionsByBehaviorId = tapDanceDefinitionsByBehaviorId(keymap);
+          device.loaded = true;
+          updateFileSaveButton();
+          elements.restoreStockButton.disabled = false;
+          state.activeLayer = 0;
+          state.selectedCandidate = null;
+          state.selectedKey = null;
+          elements.selectionHint.textContent = "接続中のキー候補を選択して、キーに割り当てます。";
+          updateDeviceSaveButton();
+          renderLayerTabs();
+          refreshCandidates();
+          renderKeyboard();
+          setStatus(`${device.name} に接続しました。6レイヤー・各42キーを読み込みました。`, "success");
+        } finally {
+          device.loading = false;
+        }
+      }
+
+      function parseStudioKeymapBackup(source) {
+        let backup;
+        try {
+          backup = JSON.parse(source);
+        } catch (error) {
+          throw new Error(`JSONバックアップを解析できません: ${error.message}`);
+        }
+        if (backup?.format !== "tentalice-studio-keymap-backup" || backup.version !== 1) {
+          throw new Error("Tentalice Studioキーマップバックアップ形式ではありません。");
+        }
+        if (!Array.isArray(backup.layers) || backup.layers.length !== LAYER_COUNT) {
+          throw new Error(`バックアップのレイヤー数が${LAYER_COUNT}ではありません。`);
+        }
+        if (!Array.isArray(backup.behaviors)) {
+          throw new Error("バックアップにビヘイビア情報がありません。");
+        }
+        const behaviorIds = new Set();
+        for (const behavior of backup.behaviors) {
+          if (!Number.isInteger(behavior?.id) || typeof behavior.displayName !== "string" ||
+              behaviorIds.has(behavior.id)) {
+            throw new Error("バックアップ内のビヘイビア情報が正しくありません。");
+          }
+          behaviorIds.add(behavior.id);
+        }
+        for (const [layerIndex, layer] of backup.layers.entries()) {
+          if (!Array.isArray(layer.bindings) || layer.bindings.length !== KEYS_PER_LAYER) {
+            throw new Error(`バックアップのレイヤー ${layerIndex} のキー数が${KEYS_PER_LAYER}ではありません。`);
+          }
+          for (const [keyIndex, binding] of layer.bindings.entries()) {
+            if (!Number.isInteger(binding?.behaviorId) || !behaviorIds.has(binding.behaviorId) ||
+                !Number.isInteger(binding.param1) || binding.param1 < 0 ||
+                !Number.isInteger(binding.param2) || binding.param2 < 0) {
+              throw new Error(`レイヤー ${layerIndex}・キー ${keyIndex + 1} のバインディングが不正です。`);
+            }
+          }
+        }
+        return backup;
+      }
+
+      async function applyStudioKeymapBackup(backup) {
+        const device = state.device;
+        if (!device?.loaded || device.applying) {
+          setStatus("JSONバックアップを復元するには、対象キーボードへ接続してキーマップを読み込んでください。", "error");
+          return false;
+        }
+
+        const deviceBehaviorByBackupId = new Map();
+        for (const savedBehavior of backup.behaviors) {
+          let current = device.behaviors.get(savedBehavior.id);
+          if (current &&
+              (current.displayName !== savedBehavior.displayName ||
+               JSON.stringify(current.metadata || []) !== JSON.stringify(savedBehavior.metadata || []))) {
+            current = null;
+          }
+          if (!current) {
+            const matches = [...device.behaviors.values()].filter((behavior) =>
+              behavior.displayName === savedBehavior.displayName &&
+              JSON.stringify(behavior.metadata || []) === JSON.stringify(savedBehavior.metadata || [])
+            );
+            if (matches.length === 1) current = matches[0];
+          }
+          if (!current) {
+            setStatus(`JSONバックアップの動作「${savedBehavior.displayName}」を接続中のファームウェアで特定できません。バックアップ元と同じファームウェアを使用してください。`, "error");
+            return false;
+          }
+          deviceBehaviorByBackupId.set(savedBehavior.id, current.id);
+        }
+
+        const assignments = [];
+        for (const [layerIndex, savedLayer] of backup.layers.entries()) {
+          const currentLayer = device.keymap.layers[layerIndex];
+          if (!currentLayer || currentLayer.bindings.length !== savedLayer.bindings.length) {
+            setStatus(`JSONバックアップと接続中キーボードで、レイヤー ${layerIndex} のキー数が一致しません。`, "error");
+            return false;
+          }
+          for (const [keyPosition, savedBinding] of savedLayer.bindings.entries()) {
+            const behaviorId = deviceBehaviorByBackupId.get(savedBinding.behaviorId);
+            if (behaviorId === undefined) {
+              setStatus(`レイヤー ${layerIndex}・キー ${keyPosition + 1} の動作ID ${savedBinding.behaviorId} を解決できません。`, "error");
+              return false;
+            }
+            assignments.push({
+              layer: currentLayer,
+              keyPosition,
+              binding: { behaviorId, param1: savedBinding.param1, param2: savedBinding.param2 }
+            });
+          }
+        }
+
+        if (device.dirty && !window.confirm("キーボードに未保存の変更があります。JSONバックアップで上書きしますか？")) {
+          return false;
+        }
+
+        device.applying = true;
+        updateDeviceSaveButton();
+        updateFileSaveButton();
+        elements.disconnectButton.disabled = true;
+        elements.filePicker.disabled = true;
+        renderKeyboard();
+        try {
+          let completed = 0;
+          for (const assignment of assignments) {
+            const current = assignment.layer.bindings[assignment.keyPosition];
+            const next = assignment.binding;
+            if (current.behaviorId !== next.behaviorId ||
+                current.param1 !== next.param1 || current.param2 !== next.param2) {
+              await writeDeviceLayerBinding(assignment.layer, assignment.keyPosition, next);
+            }
+            completed++;
+            if (completed % 10 === 0 || completed === assignments.length) {
+              setStatus(`JSONバックアップを復元しています: ${completed}/${assignments.length} キー`);
+            }
+          }
+          setStatus(device.dirty
+            ? "JSONバックアップをキーボードへ適用しました。「キーボードに保存」で本体へ保存してください。"
+            : "JSONバックアップとキーボードのキーマップは同じ内容です。", "success");
+          refreshCandidates();
+          renderKeyboard();
+          return true;
+        } catch (error) {
+          setStatus(`JSONバックアップの復元が途中で失敗しました: ${error.message} 変更済みのキーはキーボード上に残っています。`, "error");
+          return false;
+        } finally {
+          device.applying = false;
+          updateDeviceSaveButton();
+          updateFileSaveButton();
+          elements.disconnectButton.disabled = false;
+          elements.filePicker.disabled = false;
+          renderPalette();
+          renderKeyboard();
+        }
+      }
+
+      async function watchDeviceNotifications(device) {
+        const reader = device.connection.notification_readable.getReader();
+        try {
+          while (state.device === device) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            if (value?.core?.lockStateChanged === device.unlockedState) {
+              await loadDeviceKeymap(device);
+            }
+          }
+        } finally {
+          reader.releaseLock();
+        }
+        if (state.device === device) throw new Error("USB接続が終了しました。");
+      }
+
+      async function disconnectDevice(message = "キーボードとの接続を終了しました。", kind = "") {
+        const device = state.device;
+        state.device = null;
+        updateFileSaveButton();
+        elements.connectButton.disabled = Boolean(device);
+        elements.disconnectButton.hidden = true;
+        updateDeviceSaveButton();
+        elements.restoreStockButton.disabled = true;
+        state.selectedCandidate = null;
+        state.selectedKey = null;
+        elements.selectionHint.textContent = "候補を選択してキーに割り当てます。ドラッグにも対応しています。";
+        let closeError = null;
+        if (device) {
+          try {
+            await closeSerialTransport(device.transport, device.notificationTask);
+          } catch (error) {
+            closeError = error;
+            state.device = device;
+            elements.disconnectButton.hidden = false;
+          }
+        }
+        elements.connectButton.disabled = Boolean(closeError);
+        elements.connectButton.setAttribute("aria-pressed", String(Boolean(state.device)));
+        renderLayerTabs();
+        refreshCandidates();
+        renderKeyboard();
+        setStatus(closeError ? `USB接続の終了に失敗しました: ${closeError.message}` : message, closeError ? "error" : kind);
+      }
+
+      elements.connectButton.addEventListener("click", async () => {
+        if (!navigator.serial) {
+          setStatus("このブラウザーではUSBシリアル接続を利用できません。ChromeまたはEdgeで開くか、公式Studioを利用してください。", "error");
+          return;
+        }
+
+        elements.connectButton.disabled = true;
+        setStatus("ブラウザーのUSBデバイス選択画面で、接続するキーボードを選択してください。");
+        let pendingTransport = null;
+        try {
+          const transport = await requestSerialTransport();
+          pendingTransport = transport;
+          const modules = await rpcModulesPromise;
+          if (modules.error) throw new Error(`通信ライブラリを読み込めませんでした。インターネット接続を確認してください: ${modules.error.message}`);
+          await openSerialTransport(transport);
+          const connection = await modules.client.create_rpc_connection(transport, {
+            signal: transport.abortController.signal
+          });
+          const infoResponse = await modules.client.call_rpc(connection, {
+            core: { getDeviceInfo: true }
+          });
+          const name = infoResponse.core?.getDeviceInfo?.name;
+          if (!name) throw new Error("キーボード情報を取得できませんでした。USB接続とStudio対応ファームウェアを確認してください。");
+
+          const device = {
+            client: modules.client,
+            core: modules.core,
+            transport,
+            connection,
+            name,
+            keymap: null,
+            behaviors: new Map(),
+            candidateBindings: new Map(),
+            unlockedState: modules.core.LockState.ZMK_STUDIO_CORE_LOCK_STATE_UNLOCKED,
+            loading: false,
+            loaded: false,
+            dirty: false,
+            notificationTask: null
+          };
+          state.device = device;
+          elements.connectButton.setAttribute("aria-pressed", "true");
+          pendingTransport = null;
+          elements.disconnectButton.hidden = false;
+          device.notificationTask = watchDeviceNotifications(device);
+          void device.notificationTask.catch((error) => {
+            if (state.device === device) {
+              setStatus(`キーボードとの通信に失敗しました: ${error.message}`, "error");
+              void disconnectDevice();
+            }
+          });
+          const lockResponse = await device.client.call_rpc(connection, {
+            core: { getLockState: true }
+          });
+          if (lockResponse.core?.getLockState === device.unlockedState) {
+            await loadDeviceKeymap(device);
+          } else {
+            setStatus(`${name} に接続しました。ロック解除キーを押すとキーマップを読み込みます。`);
+          }
+        } catch (error) {
+          if (pendingTransport) {
+            try {
+              await closeSerialTransport(pendingTransport);
+            } catch (closeError) {
+              setStatus(`USB接続の終了に失敗しました: ${closeError.message}`, "error");
+            }
+          }
+          await disconnectDevice(`キーボードに接続できませんでした: ${error.message}`, "error");
+        } finally {
+          if (!state.device) elements.connectButton.disabled = false;
+        }
+      });
+
+      elements.disconnectButton.addEventListener("click", () => {
+        void disconnectDevice();
+      });
+
+      elements.deviceSaveButton.addEventListener("click", async () => {
+        const device = state.device;
+        if (!device?.loaded || !device.dirty) return;
+        device.saving = true;
+        updateDeviceSaveButton();
+        setStatus("キーマップをキーボード本体へ保存しています。");
+        try {
+          const response = await device.client.call_rpc(device.connection, {
+            keymap: { saveChanges: true }
+          });
+          const result = response.keymap?.saveChanges;
+          if (!result?.ok) {
+            const reason = result?.err === 3 ? "キーボードの保存領域に空きがありません。" : `保存できませんでした (応答: ${result?.err ?? "なし"})`;
+            throw new Error(reason);
+          }
+          device.dirty = false;
+          device.saving = false;
+          updateDeviceSaveButton();
+          setStatus("キーマップをキーボード本体へ保存しました。", "success");
+        } catch (error) {
+          device.saving = false;
+          updateDeviceSaveButton();
+          setStatus(`キーボードへの保存に失敗しました: ${error.message}`, "error");
+        }
+      });
+
+      elements.restoreStockButton.addEventListener("click", async () => {
+        const device = state.device;
+        if (!device?.loaded || device.restoring) return;
+        const confirmed = window.confirm(
+          "キーボードのStudio設定を破棄し、ファームウェアに含まれる初期キーマップへ戻します。続行しますか？"
+        );
+        if (!confirmed) return;
+
+        device.restoring = true;
+        elements.restoreStockButton.disabled = true;
+        updateDeviceSaveButton();
+        setStatus("キーボードの初期設定を復元しています。");
+        let resetCompleted = false;
+        try {
+          const response = await device.client.call_rpc(device.connection, {
+            core: { resetSettings: true }
+          });
+          if (!response.core?.resetSettings) {
+            throw new Error("キーボードが初期設定の復元を確認しませんでした。");
+          }
+
+          resetCompleted = true;
+          device.loaded = false;
+          device.dirty = false;
+          await loadDeviceKeymap(device);
+          if (state.device === device && device.loaded) {
+            device.restoring = false;
+            elements.restoreStockButton.disabled = false;
+            updateDeviceSaveButton();
+            setStatus("ファームウェアの初期キーマップと設定を復元しました。", "success");
+          }
+        } catch (error) {
+          device.restoring = false;
+          elements.restoreStockButton.disabled = !device.loaded;
+          updateDeviceSaveButton();
+          const message = resetCompleted
+            ? `初期設定は復元されましたが、再読み込みに失敗しました: ${error.message}`
+            : `初期設定の復元に失敗しました: ${error.message}`;
+          setStatus(message, "error");
+        }
+      });
+
+      elements.filePicker.addEventListener("change", async () => {
+        const file = elements.filePicker.files && elements.filePicker.files[0];
+        if (!file) return;
+
+        try {
+          const source = await file.text();
+          const backup = parseStudioKeymapBackup(source);
+          await applyStudioKeymapBackup(backup);
+        } catch (error) {
+          setStatus(`ファイルを読み込めませんでした: ${error.message}`, "error");
+        } finally {
+          elements.filePicker.value = "";
+        }
+      });
+
+      elements.saveButton.addEventListener("click", () => {
+        const device = state.device;
+        if (!device?.loaded || device.applying) return;
+        const backup = {
+          format: "tentalice-studio-keymap-backup",
+          version: 1,
+          deviceName: device.name,
+          savedAt: new Date().toISOString(),
+          layers: device.keymap.layers.map((layer) => ({
+            id: layer.id,
+            name: layer.name,
+            bindings: layer.bindings.map(({ behaviorId, param1, param2 }) => ({
+              behaviorId,
+              param1,
+              param2
+            }))
+          })),
+          behaviors: [...device.behaviors.values()].map(({ id, displayName, metadata }) => ({
+            id,
+            displayName,
+            metadata
+          }))
+        };
+        const fileName = "tentalice-keymap-backup.json";
+        const blob = new Blob([JSON.stringify(backup, null, 2)], {
+          type: "application/json;charset=utf-8"
+        });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName;
+        document.body.append(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        setStatus(`${fileName} をダウンロードしました。接続中キーボードの全レイヤー・全キーをJSON形式で保存しました。`, "success");
+      });
+
+      elements.search.addEventListener("input", renderPalette);
+      elements.categoryFilter.addEventListener("change", () => {
+        state.candidateList = elements.categoryFilter.value;
+        state.selectedCandidate = null;
+        updateBindingBuilder();
+        renderPalette();
+      });
+      elements.bindingType.addEventListener("change", updateBindingBuilder);
+      for (const checkbox of elements.bindingModifiers) {
+        checkbox.addEventListener("change", () => {
+          if (elements.bindingType.value === "mt" && checkbox.checked) {
+            for (const other of elements.bindingModifiers) {
+              if (other !== checkbox) other.checked = false;
+            }
+          }
+        });
+      }
+      elements.addBindingButton.addEventListener("click", () => {
+        const binding = bindingFromBuilder();
+        if (binding) addBindingCandidate(binding);
+      });
+      updateBindingBuilder();
+      renderLayerTabs();
+      refreshCandidates();
+      renderKeyboard();
+    })();
+  </script>
+</body>
+</html>
