@@ -8,6 +8,10 @@ properties:
     const: 0
     description: Number of cells in input processor specifier
 
+  track-remainders:
+    type: boolean
+    description: Track fractional input values between events
+
   mode:
     type: int
     required: true
