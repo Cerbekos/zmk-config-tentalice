@@ -1,10 +1,7 @@
 #include <dt-bindings/zmk/behaviors.h>
 #include <input/processors.dtsi>
-#include <scroll-snap.dtsi>
 #include <dt-bindings/zmk/input_transform.h>
-#include <input/processors/sensor_rotation.dtsi>
-#include <mouse-gesture.dtsi>
-#include <behaviors/input_gestures_accel.dtsi>
+#include <tentalice-input.dtsi>
 #include <behaviors.dtsi>
 #include <dt-bindings/zmk/bt.h>
 #include <dt-bindings/zmk/keys.h>
@@ -27,63 +24,11 @@
 /* トラックボール関連 */
 
 &zip_temp_layer {
-    excluded-positions = <
-        12 /* left Ctrl */
-        24 /* left Shift */
-        30 /* right B */
-        31 /* N */
-        32 /* M */
-        33 /* , */
-        37 /* left Alt */
-    >;
-
-    // マウスレイヤーを解除しないキーリスト
-
     require-prior-idle-ms = <200>; // キー入力から一定時間はAMLを発動しない
 };
 
 &mkp_input_listener {
     input-processors = <&zip_temp_layer 4 100000>; // マウスキーで時間延長
-};
-
-&zip_mouse_gesture {
-    /* マウスジェスチャー */
-
-    stroke-size = <50>;
-    idle-timeout-ms = <0>;
-    gesture-cooldown-ms = <10>;
-
-    history_back {
-        pattern = <GESTURE_LEFT>;
-        bindings = <&kp LA(LEFT)>;
-    };
-
-    history_forward {
-        pattern = <GESTURE_RIGHT>;
-        bindings = <&kp LA(RIGHT)>;
-    };
-
-    close_tab {
-        pattern = <GESTURE_DOWN>;
-        bindings = <&kp LC(W)>;
-    };
-
-    new_tab {
-        pattern = <GESTURE_UP>;
-        bindings = <&kp LC(T)>;
-    };
-};
-
-&pointer_accel {
-    /* ポインタ加速 */
-
-    input-type = <INPUT_EV_REL>;  // 相対入力デバイス用
-    track-remainders;             // 小数点以下の移動量を蓄積する
-    min-factor = <800>;           // 非常に遅い速度で 0.8倍
-    max-factor = <3000>;          // 高速時に 3.0倍
-    speed-threshold = <1200>;     // 1x（等倍）となる速度の閾値：毎秒 1200 カウント
-    speed-max = <6000>;           // 最大加速が適用される速度：毎秒 6000 カウント
-    acceleration-exponent = <2>;  // 二次（2乗）による加速曲線
 };
 
 / {
@@ -94,11 +39,11 @@
         /* トラックボール操作でマウスレイヤー起動 */
 
         input-processors = <
-            &sensor_rotation
+            &tentalice_rotation
             &zip_xy_transform (INPUT_TRANSFORM_XY_SWAP | INPUT_TRANSFORM_Y_INVERT)
             &zip_temp_layer 4 100000
-            &pointer_accel
-            &zip_mouse_gesture
+            &tentalice_acceleration
+            &tentalice_mouse_gesture
         >;
 
         /* 特定のレイヤーでスクロールモード */
@@ -106,32 +51,34 @@
         scroll_mode {
             layers = <1 2>;
             input-processors = <
-                &sensor_rotation
+                &tentalice_rotation
                 &zip_xy_transform (INPUT_TRANSFORM_XY_SWAP | INPUT_TRANSFORM_Y_INVERT)
                 &zip_xy_to_scroll_mapper
                 &zip_scroll_scaler 1 10
-                &pointer_accel
-                &zip_scroll_snap
-                &zip_mouse_gesture
+                &tentalice_acceleration
+                &tentalice_scroll_snap
+                &tentalice_mouse_gesture
             >;
         };
     };
-
-    input_processors {
-        /* トラックボールの角度調整 */
-
-        sensor_rotation: sensor_rotation {
-            compatible = "zmk,input-processor-sensor-rotation";
-            #input-processor-cells = <0>;
-            rotation-angle = <45>;
-        };
-    };
-};
+} ;
 
 /* ビヘイビア・キーマップ関連 */
 
 / {
     behaviors {
+        mouse_gesture: mouse_gesture {
+            compatible = "zmk,behavior-tentalice-mouse-gesture";
+            #binding-cells = <0>;
+            display-name = "Mouse Gesture";
+        };
+
+        tentalice_setting: tentalice_setting {
+            compatible = "zmk,behavior-tentalice-setting";
+            #binding-cells = <2>;
+            display-name = "Tentalice Setting";
+        };
+
         /* タップダンス */
 
         td_CS: tap_dance_1 {
@@ -667,6 +614,16 @@
   &out OUT_USB  &trans        &trans        &trans        &bt BT_CLR    &bt BT_CLR_ALL  &trans  &trans  &trans  &trans  &trans  &trans
   &trans        &trans        &trans        &trans        &trans        &trans          &trans  &trans  &trans  &trans  &trans  &trans
   &trans        &bootloader   &trans        &trans        &bootloader   &trans
+            >;
+        };
+
+        /* Studio settings storage; the editor intentionally hides this layer. */
+        layer_6 {
+            bindings = <
+  &tentalice_setting 0 45    &tentalice_setting 1 800   &tentalice_setting 2 3000  &tentalice_setting 3 1200  &tentalice_setting 4 6000  &tentalice_setting 5 2   &tentalice_setting 6 1   &tentalice_setting 7 5   &tentalice_setting 8 8   &tentalice_setting 9 1   &tentalice_setting 10 1  &tentalice_setting 11 5
+  &tentalice_setting 12 8   &tentalice_setting 13 10  &tentalice_setting 14 1500 &tentalice_setting 15 200 &tentalice_setting 16 10  &tentalice_setting 17 200 &tentalice_setting 18 50  &tentalice_setting 19 0  &tentalice_setting 20 10  &tentalice_setting 21 400 &tentalice_setting 22 1  &tentalice_setting 23 2
+  &tentalice_setting 24 3   &tentalice_setting 25 4   &kp LA(LEFT)              &kp LA(RIGHT)             &kp LC(W)                &kp LC(T)                  &trans                    &trans        &trans     &trans     &trans &trans
+  &trans &trans &trans &trans &trans &trans
             >;
         };
     };

@@ -1,0 +1,10 @@
+description: Stores one Tentalice runtime setting in the hidden Studio layer
+
+compatible: "zmk,behavior-tentalice-setting"
+
+include: two_param.yaml
+
+properties:
+  display-name:
+    type: string
+    required: true

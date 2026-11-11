@@ -1,0 +1,27 @@
+/ {
+    input_processors {
+        tentalice_rotation: tentalice_rotation {
+            compatible = "zmk,input-processor-tentalice";
+            #input-processor-cells = <0>;
+            mode = <0>;
+        };
+
+        tentalice_acceleration: tentalice_acceleration {
+            compatible = "zmk,input-processor-tentalice";
+            #input-processor-cells = <0>;
+            mode = <1>;
+        };
+
+        tentalice_scroll_snap: tentalice_scroll_snap {
+            compatible = "zmk,input-processor-tentalice";
+            #input-processor-cells = <0>;
+            mode = <2>;
+        };
+
+        tentalice_mouse_gesture: tentalice_mouse_gesture {
+            compatible = "zmk,input-processor-tentalice";
+            #input-processor-cells = <0>;
+            mode = <3>;
+        };
+    };
+};

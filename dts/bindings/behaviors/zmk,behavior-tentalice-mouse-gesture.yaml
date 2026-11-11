@@ -1,0 +1,10 @@
+description: Enables mouse gesture recognition while held
+
+compatible: "zmk,behavior-tentalice-mouse-gesture"
+
+include: zero_param.yaml
+
+properties:
+  display-name:
+    type: string
+    required: true

@@ -300,7 +300,7 @@
     .binding-builder [hidden] { display: none; }
     .binding-builder[hidden] { display: none; }
 
-    input[type="search"], input[type="text"], select {
+    input[type="search"], input[type="text"], input[type="number"], select {
       min-width: 0;
       padding: 10px 12px;
       border: 1px solid var(--border);
@@ -311,8 +311,27 @@
     }
 
     input:focus { border-color: var(--accent); }
+    input[type="checkbox"] { accent-color: var(--accent); }
     #search { width: min(360px, 100%); }
     #category-filter { min-width: 190px; }
+    .settings-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 12px;
+    }
+    .setting-field { display: grid; gap: 6px; color: var(--muted); font-size: 12px; }
+    .setting-field input[type="number"] { width: 100%; }
+    .setting-field.checkbox { display: flex; align-items: center; gap: 8px; min-height: 40px; }
+    .gesture-settings {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .gesture-setting { display: grid; gap: 7px; }
+    .gesture-setting label { color: var(--muted); font-size: 12px; }
+    .gesture-setting .gesture-action { display: grid; grid-template-columns: 1fr auto; gap: 6px; }
+    .settings-note { margin-top: 12px; color: var(--muted); font-size: 12px; line-height: 1.6; }
 
     .palette {
       display: grid;
@@ -404,6 +423,17 @@
       </div>
     </section>
 
+    <section class="panel" aria-labelledby="pointing-settings-heading">
+      <div class="section-heading">
+        <h2 id="pointing-settings-heading">トラックボール設定</h2>
+        <span class="hint">接続中のキーボードへ反映します</span>
+      </div>
+      <p class="status" id="settings-status" role="status">設定を変更するには、Studio対応キーボードへ接続してください。</p>
+      <div class="settings-grid" id="pointing-settings-form"></div>
+      <div class="gesture-settings" id="gesture-settings-form"></div>
+      <p class="settings-note">変更は接続中に反映されます。電源を切る前に「キーボードに保存」を押してください。設定は通常の6レイヤーとは別の内部領域に保存されます。</p>
+    </section>
+
     <section class="panel" aria-labelledby="palette-heading">
       <div class="section-heading">
         <h2 id="palette-heading">キー候補</h2>
@@ -460,7 +490,44 @@
       "use strict";
 
       const LAYER_COUNT = 6;
+      const DEVICE_LAYER_COUNT = 7;
+      const SETTINGS_LAYER_INDEX = 6;
       const KEYS_PER_LAYER = 42;
+      const POINTING_SETTINGS = [
+        { id: 0, label: "センサー回転角度", min: 0, max: 355, step: 5, unit: "°", defaultValue: 45 },
+        { id: 1, label: "加速：最小倍率", min: 100, max: 20000, step: 50, unit: "‰", defaultValue: 800 },
+        { id: 2, label: "加速：最大倍率", min: 100, max: 20000, step: 50, unit: "‰", defaultValue: 3000 },
+        { id: 3, label: "加速：等倍速度", min: 1, max: 100000, step: 100, unit: "counts/s", defaultValue: 1200 },
+        { id: 4, label: "加速：最大速度", min: 1, max: 100000, step: 100, unit: "counts/s", defaultValue: 6000 },
+        { id: 5, label: "加速：指数", min: 1, max: 4, step: 1, unit: "", defaultValue: 2 },
+        { id: 6, label: "加速：端数を蓄積", type: "checkbox", defaultValue: 1 },
+        { id: 7, label: "スナップ：X軸の分子", min: 1, max: 1000, step: 1, unit: "", defaultValue: 5 },
+        { id: 8, label: "スナップ：X軸の分母", min: 1, max: 1000, step: 1, unit: "", defaultValue: 8 },
+        { id: 9, label: "スナップ：Y軸の分子", min: 1, max: 1000, step: 1, unit: "", defaultValue: 1 },
+        { id: 10, label: "スナップ：Y軸の分母", min: 1, max: 1000, step: 1, unit: "", defaultValue: 1 },
+        { id: 13, label: "スナップ：必要サンプル数", min: 1, max: 16, step: 1, unit: "events", defaultValue: 10 },
+        { id: 14, label: "スナップ：即時判定量", min: 0, max: 100000, step: 50, unit: "", defaultValue: 1500 },
+        { id: 15, label: "スナップ：方向ロック時間", min: 0, max: 60000, step: 10, unit: "ms", defaultValue: 200 },
+        { id: 16, label: "スナップ：ロックイベント数", min: 0, max: 255, step: 1, unit: "events", defaultValue: 10 },
+        { id: 17, label: "スナップ：アイドルリセット", min: 0, max: 60000, step: 10, unit: "ms (0=無効)", defaultValue: 200 },
+        { id: 18, label: "ジェスチャー：1ストローク量", min: 1, max: 10000, step: 1, unit: "counts", defaultValue: 50 },
+        { id: 19, label: "ジェスチャー：終了待ち時間", min: 0, max: 10000, step: 10, unit: "ms (0=キー解放時)", defaultValue: 0 },
+        { id: 20, label: "ジェスチャー：クールダウン", min: 0, max: 10000, step: 10, unit: "ms", defaultValue: 10 },
+        { id: 21, label: "ジェスチャー：途中破棄時間", min: 0, max: 10000, step: 10, unit: "ms (0=無効)", defaultValue: 400 }
+      ];
+      const GESTURE_PATTERNS = [
+        { label: "←", value: 1 }, { label: "→", value: 2 }, { label: "↓", value: 3 }, { label: "↑", value: 4 },
+        { label: "← →", value: 11 }, { label: "← ↓", value: 16 }, { label: "← ↑", value: 21 },
+        { label: "→ ←", value: 7 }, { label: "→ ↓", value: 17 }, { label: "→ ↑", value: 22 },
+        { label: "↓ ←", value: 8 }, { label: "↓ →", value: 13 }, { label: "↓ ↑", value: 23 },
+        { label: "↑ ←", value: 9 }, { label: "↑ →", value: 14 }, { label: "↑ ↓", value: 19 }
+      ];
+      const GESTURE_SETTINGS = [
+        { id: 22, actionSlot: 26, label: "履歴を戻る", defaultPattern: 1, defaultBinding: "&kp LA(LEFT)" },
+        { id: 23, actionSlot: 27, label: "履歴を進む", defaultPattern: 2, defaultBinding: "&kp LA(RIGHT)" },
+        { id: 24, actionSlot: 28, label: "タブを閉じる", defaultPattern: 3, defaultBinding: "&kp LC(W)" },
+        { id: 25, actionSlot: 29, label: "新しいタブ", defaultPattern: 4, defaultBinding: "&kp LC(T)" }
+      ];
       const KEY_UNIT = 52;
       const physicalKeys = [
         { x: 0.4, y: 0.45, w: 1, h: 1, r: -2, rx: 1.6, ry: 0.85 },
@@ -777,7 +844,10 @@
         bindingLayerLabel: document.getElementById("binding-layer-label"),
         bindingKeyLabel: document.getElementById("binding-key-label"),
         addBindingButton: document.getElementById("add-binding-button"),
-        selectionHint: document.getElementById("selection-hint")
+        selectionHint: document.getElementById("selection-hint"),
+        pointingSettingsForm: document.getElementById("pointing-settings-form"),
+        gestureSettingsForm: document.getElementById("gesture-settings-form"),
+        settingsStatus: document.getElementById("settings-status")
       };
 
       const rpcModulesPromise = Promise.all([
@@ -880,6 +950,208 @@
         const device = state.device;
         elements.saveButton.disabled = !device?.loaded || Boolean(device.applying);
       }
+
+      const pointingSettingControls = new Map();
+      const gesturePatternControls = new Map();
+      const gestureActionControls = new Map();
+
+      function buildPointingSettingsControls() {
+        for (const setting of POINTING_SETTINGS) {
+          const label = document.createElement("label");
+          label.className = `setting-field${setting.type === "checkbox" ? " checkbox" : ""}`;
+          const input = document.createElement("input");
+          input.type = setting.type || "number";
+          input.dataset.settingId = String(setting.id);
+          if (setting.type === "checkbox") {
+            input.setAttribute("aria-label", setting.label);
+          } else {
+            input.min = String(setting.min);
+            input.max = String(setting.max);
+            input.step = String(setting.step);
+          }
+          const title = document.createElement("span");
+          title.textContent = setting.label;
+          if (setting.type === "checkbox") {
+            label.append(input, title);
+          } else {
+            label.append(title, input);
+            if (setting.unit) {
+              const unit = document.createElement("span");
+              unit.textContent = setting.unit;
+              label.append(unit);
+            }
+          }
+          input.addEventListener("change", () => void savePointingSetting(setting, input));
+          elements.pointingSettingsForm.append(label);
+          pointingSettingControls.set(setting.id, input);
+        }
+
+        for (const gesture of GESTURE_SETTINGS) {
+          const container = document.createElement("div");
+          container.className = "gesture-setting";
+          const patternLabel = document.createElement("label");
+          patternLabel.textContent = `${gesture.label}：ジェスチャー`;
+          const pattern = document.createElement("select");
+          pattern.setAttribute("aria-label", patternLabel.textContent);
+          for (const optionValue of GESTURE_PATTERNS) {
+            const option = document.createElement("option");
+            option.value = String(optionValue.value);
+            option.textContent = optionValue.label;
+            pattern.append(option);
+          }
+          pattern.addEventListener("change", () => void saveGesturePattern(gesture, pattern));
+
+          const actionLabel = document.createElement("label");
+          actionLabel.textContent = `${gesture.label}：実行するキー動作`;
+          const actionRow = document.createElement("div");
+          actionRow.className = "gesture-action";
+          const action = document.createElement("input");
+          action.type = "text";
+          action.placeholder = "&kp LA(LEFT)";
+          action.setAttribute("aria-label", actionLabel.textContent);
+          const save = document.createElement("button");
+          save.type = "button";
+          save.className = "button";
+          save.textContent = "適用";
+          save.addEventListener("click", () => void saveGestureAction(gesture, action));
+          actionRow.append(action, save);
+          container.append(patternLabel, pattern, actionLabel, actionRow);
+          elements.gestureSettingsForm.append(container);
+          gesturePatternControls.set(gesture.id, pattern);
+          gestureActionControls.set(gesture.id, action);
+        }
+      }
+
+      function settingsLayer(device = state.device) {
+        return device?.keymap?.layers[SETTINGS_LAYER_INDEX] || null;
+      }
+
+      function updatePointingSettingsControls() {
+        const device = state.device;
+        const layer = settingsLayer(device);
+        const enabled = Boolean(device?.loaded && layer && !device.applying && !device.restoring);
+        elements.settingsStatus.textContent = !device?.loaded
+          ? "設定を変更するには、Studio対応キーボードへ接続してください。"
+          : !layer
+            ? "設定保存レイヤーが見つかりません。最新のTentaliceファームウェアを使用してください。"
+            : device.applying
+              ? "キーマップを適用中です。完了後に設定を変更できます。"
+              : "設定は接続中に反映されます。保存ボタンで本体へ保存してください。";
+        for (const setting of POINTING_SETTINGS) {
+          const input = pointingSettingControls.get(setting.id);
+          if (!input) continue;
+          const binding = layer?.bindings[setting.id];
+          input.disabled = !enabled;
+          if (!device?.loaded || !binding) continue;
+          if (setting.type === "checkbox") {
+            input.checked = binding.param2 !== 0;
+          } else {
+            input.value = String(binding.param2);
+          }
+        }
+        for (const gesture of GESTURE_SETTINGS) {
+          const pattern = gesturePatternControls.get(gesture.id);
+          const action = gestureActionControls.get(gesture.id);
+          if (pattern) {
+            pattern.disabled = !enabled;
+            const binding = layer?.bindings[gesture.id];
+            if (device?.loaded && binding) pattern.value = String(binding.param2);
+          }
+          if (action) {
+            action.disabled = !enabled;
+            const binding = layer?.bindings[gesture.actionSlot];
+            if (device?.loaded && binding) {
+              action.value = deviceBindingDisplay(deviceBindingKey(binding));
+            } else {
+              action.value = gesture.defaultBinding;
+            }
+          }
+          const saveButton = elements.gestureSettingsForm
+            .querySelectorAll(".gesture-action button")[GESTURE_SETTINGS.indexOf(gesture)];
+          if (saveButton) saveButton.disabled = !enabled;
+        }
+      }
+
+      function settingBehaviorId(device) {
+        const setting = device?.keymap?.layers[SETTINGS_LAYER_INDEX]?.bindings?.[0];
+        const behavior = setting && device.behaviors.get(setting.behaviorId);
+        if (behavior?.displayName !== "Tentalice Setting") return null;
+        return behavior.id;
+      }
+
+      async function savePointingSetting(setting, input) {
+        const device = state.device;
+        const layer = settingsLayer(device);
+        const behaviorId = settingBehaviorId(device);
+        const value = setting.type === "checkbox" ? Number(input.checked) : Number(input.value);
+        if (!device?.loaded || !layer || behaviorId === null || !Number.isSafeInteger(value) ||
+            (setting.type !== "checkbox" && (value < setting.min || value > setting.max ||
+              (value - setting.min) % setting.step !== 0))) {
+          setStatus(`「${setting.label}」の値が不正です。`, "error");
+          updatePointingSettingsControls();
+          return;
+        }
+        const currentMin = layer.bindings[1]?.param2;
+        const currentMax = layer.bindings[2]?.param2;
+        if ((setting.id === 1 && value > currentMax) ||
+            (setting.id === 2 && value < currentMin)) {
+          setStatus("加速の最小倍率は最大倍率以下にしてください。", "error");
+          updatePointingSettingsControls();
+          return;
+        }
+        try {
+          await setDeviceLayerBinding(layer, setting.id, {
+            behaviorId,
+            param1: setting.id,
+            param2: value
+          });
+          updatePointingSettingsControls();
+          setStatus(`「${setting.label}」を ${value}${setting.unit || ""} に変更しました。保存してください。`, "success");
+        } catch (error) {
+          setStatus(`設定を適用できませんでした: ${error.message}`, "error");
+          updatePointingSettingsControls();
+        }
+      }
+
+      async function saveGesturePattern(gesture, input) {
+        const device = state.device;
+        const layer = settingsLayer(device);
+        const behaviorId = settingBehaviorId(device);
+        const value = Number(input.value);
+        if (!device?.loaded || !layer || behaviorId === null || !Number.isInteger(value)) return;
+        try {
+          await setDeviceLayerBinding(layer, gesture.id, {
+            behaviorId,
+            param1: gesture.id,
+            param2: value
+          });
+          setStatus(`${gesture.label}のジェスチャーを「${input.selectedOptions[0]?.textContent}」に変更しました。保存してください。`, "success");
+        } catch (error) {
+          setStatus(`ジェスチャーを適用できませんでした: ${error.message}`, "error");
+          updatePointingSettingsControls();
+        }
+      }
+
+      async function saveGestureAction(gesture, input) {
+        const device = state.device;
+        const layer = settingsLayer(device);
+        const binding = deviceBindingFromExpression(input.value);
+        if (!device?.loaded || !layer || !binding) {
+          setStatus(`動作「${input.value}」をファームウェアのキー動作に変換できません。`, "error");
+          return;
+        }
+        try {
+          await setDeviceLayerBinding(layer, gesture.actionSlot, binding);
+          updatePointingSettingsControls();
+          setStatus(`${gesture.label}の実行動作を変更しました。保存してください。`, "success");
+        } catch (error) {
+          setStatus(`実行動作を適用できませんでした: ${error.message}`, "error");
+          updatePointingSettingsControls();
+        }
+      }
+
+      buildPointingSettingsControls();
+      updatePointingSettingsControls();
 
       async function closeSerialTransport(transport, notificationTask) {
         transport.abortController.abort();
@@ -1169,8 +1441,8 @@
             throw new Error(`レイヤー ${number} のキー数が${KEYS_PER_LAYER}個ではありません（${layers.get(number).length}個）。`);
           }
         }
-        if (layers.size !== LAYER_COUNT) {
-          throw new Error("Tentalice のレイヤー数と一致しません。レイヤーの追加・削除されたファイルは編集できません。");
+        if (layers.size !== LAYER_COUNT && layers.size !== DEVICE_LAYER_COUNT) {
+          throw new Error("Tentalice のレイヤー数と一致しません。通常レイヤーを追加・削除したファイルは編集できません。");
         }
 
         return layerNumbers.map((number) => ({ number, bindings: layers.get(number) }));
@@ -2121,6 +2393,7 @@
         device.applying = true;
         updateDeviceSaveButton();
         updateFileSaveButton();
+        updatePointingSettingsControls();
         elements.disconnectButton.disabled = true;
         elements.filePicker.disabled = true;
         elements.addBindingButton.disabled = true;
@@ -2159,6 +2432,7 @@
           device.applying = false;
           updateDeviceSaveButton();
           updateFileSaveButton();
+          updatePointingSettingsControls();
           elements.disconnectButton.disabled = false;
           elements.filePicker.disabled = false;
           elements.addBindingButton.disabled = false;
@@ -2176,8 +2450,8 @@
             keymap: { getKeymap: true }
           });
           const keymap = keymapResponse.keymap?.getKeymap;
-          if (!keymap || keymap.layers.length !== LAYER_COUNT) {
-            throw new Error(`Tentaliceの6レイヤーを取得できませんでした (${keymap?.layers.length ?? 0}レイヤー)。Studio対応ファームウェアを確認してください。`);
+          if (!keymap || keymap.layers.length !== DEVICE_LAYER_COUNT) {
+            throw new Error(`Tentaliceの6レイヤーと設定保存レイヤーを取得できませんでした (${keymap?.layers.length ?? 0}レイヤー)。最新のStudio対応ファームウェアを確認してください。`);
           }
           for (const [index, layer] of keymap.layers.entries()) {
             if (layer.bindings.length !== KEYS_PER_LAYER) {
@@ -2213,10 +2487,11 @@
           state.selectedKey = null;
           elements.selectionHint.textContent = "接続中のキー候補を選択して、キーに割り当てます。";
           updateDeviceSaveButton();
+          updatePointingSettingsControls();
           renderLayerTabs();
           refreshCandidates();
           renderKeyboard();
-          setStatus(`${device.name} に接続しました。6レイヤー・各42キーを読み込みました。`, "success");
+          setStatus(`${device.name} に接続しました。6レイヤーとトラックボール設定を読み込みました。`, "success");
         } finally {
           device.loading = false;
         }
@@ -2232,8 +2507,9 @@
         if (backup?.format !== "tentalice-studio-keymap-backup" || backup.version !== 1) {
           throw new Error("Tentalice Studioキーマップバックアップ形式ではありません。");
         }
-        if (!Array.isArray(backup.layers) || backup.layers.length !== LAYER_COUNT) {
-          throw new Error(`バックアップのレイヤー数が${LAYER_COUNT}ではありません。`);
+        if (!Array.isArray(backup.layers) ||
+            (backup.layers.length !== LAYER_COUNT && backup.layers.length !== DEVICE_LAYER_COUNT)) {
+          throw new Error(`バックアップのレイヤー数が${LAYER_COUNT}または${DEVICE_LAYER_COUNT}ではありません。`);
         }
         if (!Array.isArray(backup.behaviors)) {
           throw new Error("バックアップにビヘイビア情報がありません。");
@@ -2318,6 +2594,7 @@
         device.applying = true;
         updateDeviceSaveButton();
         updateFileSaveButton();
+        updatePointingSettingsControls();
         elements.disconnectButton.disabled = true;
         elements.filePicker.disabled = true;
         renderKeyboard();
@@ -2348,6 +2625,7 @@
           device.applying = false;
           updateDeviceSaveButton();
           updateFileSaveButton();
+          updatePointingSettingsControls();
           elements.disconnectButton.disabled = false;
           elements.filePicker.disabled = false;
           renderPalette();
@@ -2375,6 +2653,7 @@
         const device = state.device;
         state.device = null;
         updateFileSaveButton();
+        updatePointingSettingsControls();
         elements.connectButton.disabled = Boolean(device);
         elements.disconnectButton.hidden = true;
         updateDeviceSaveButton();
@@ -2513,6 +2792,7 @@
         device.restoring = true;
         elements.restoreStockButton.disabled = true;
         updateDeviceSaveButton();
+        updatePointingSettingsControls();
         setStatus("キーボードの初期設定を復元しています。");
         let resetCompleted = false;
         try {
@@ -2531,12 +2811,14 @@
             device.restoring = false;
             elements.restoreStockButton.disabled = false;
             updateDeviceSaveButton();
+            updatePointingSettingsControls();
             setStatus("ファームウェアの初期キーマップと設定を復元しました。", "success");
           }
         } catch (error) {
           device.restoring = false;
           elements.restoreStockButton.disabled = !device.loaded;
           updateDeviceSaveButton();
+          updatePointingSettingsControls();
           const message = resetCompleted
             ? `初期設定は復元されましたが、再読み込みに失敗しました: ${error.message}`
             : `初期設定の復元に失敗しました: ${error.message}`;

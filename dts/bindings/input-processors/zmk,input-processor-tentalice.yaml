@@ -1,0 +1,15 @@
+description: Tentalice runtime-configurable pointing input processor
+
+compatible: "zmk,input-processor-tentalice"
+
+include: input-processor.yaml
+
+properties:
+  mode:
+    type: int
+    required: true
+    enum:
+      - 0
+      - 1
+      - 2
+      - 3

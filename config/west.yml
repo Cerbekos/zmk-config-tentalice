@@ -2,29 +2,10 @@ manifest:
   remotes:
     - name: zmkfirmware
       url-base: https://github.com/zmkfirmware
-    - name: kot149
-      url-base: https://github.com/kot149
-    - name: hsgw
-      url-base: https://github.com/hsgw
-    - name: oleksandrmaslov
-      url-base: https://github.com/oleksandrmaslov
   projects:
     - name: zmk
       remote: zmkfirmware
       revision: main
       import: app/west.yml
-    - name: zmk-scroll-snap
-      remote: kot149
-      revision: v1
-    - name: zmk-mouse-gesture
-      remote: kot149
-      revision: v1
-    - name: zmk-feature-sensor_rotation
-      remote: hsgw
-      revision: main
-      import: west.yml
-    - name: zmk-pointing-acceleration
-      remote: oleksandrmaslov
-      revision: main
   self:
     path: config

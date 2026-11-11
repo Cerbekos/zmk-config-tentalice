@@ -1,0 +1,4 @@
+menuconfig TENTALICE_RUNTIME_INPUT
+	bool "Tentalice runtime pointing configuration"
+	default y
+	depends on ZMK_POINTING
