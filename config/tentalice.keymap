@@ -28,7 +28,7 @@
 };
 
 &mkp_input_listener {
-    input-processors = <&zip_temp_layer 4 100000>; // マウスキーで時間延長
+    input-processors = <&zip_temp_layer 4 2000>; // マウスキー入力後2秒で解除
 };
 
 / {
@@ -41,7 +41,7 @@
         input-processors = <
             &tentalice_rotation
             &zip_xy_transform (INPUT_TRANSFORM_XY_SWAP | INPUT_TRANSFORM_Y_INVERT)
-            &zip_temp_layer 4 100000
+            &zip_temp_layer 4 2000
             &tentalice_acceleration
             &tentalice_mouse_gesture
         >;
