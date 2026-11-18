@@ -621,8 +621,8 @@
         layer_6 {
             bindings = <
   &tentalice_setting 0 45    &tentalice_setting 1 800   &tentalice_setting 2 3000  &tentalice_setting 3 1200  &tentalice_setting 4 6000  &tentalice_setting 5 2   &tentalice_setting 6 1   &tentalice_setting 7 5   &tentalice_setting 8 8   &tentalice_setting 9 1   &tentalice_setting 10 1  &tentalice_setting 11 5
-  &tentalice_setting 12 8   &tentalice_setting 13 10  &tentalice_setting 14 1500 &tentalice_setting 15 200 &tentalice_setting 16 10  &tentalice_setting 17 200 &tentalice_setting 18 50  &tentalice_setting 19 0  &tentalice_setting 20 10  &tentalice_setting 21 400 &tentalice_setting 22 1  &tentalice_setting 23 2
-  &tentalice_setting 24 3   &tentalice_setting 25 4   &kp LA(LEFT)              &kp LA(RIGHT)             &kp LC(W)                &kp LC(T)                  &trans                    &trans        &trans     &trans     &trans &trans
+  &tentalice_setting 12 8   &tentalice_setting 13 10  &tentalice_setting 14 1500 &tentalice_setting 15 200 &tentalice_setting 16 10  &tentalice_setting 17 200 &tentalice_setting 18 50  &tentalice_setting 19 0  &tentalice_setting 20 10  &tentalice_setting 21 400 &tentalice_setting 22 0  &tentalice_setting 23 0
+  &tentalice_setting 24 0   &tentalice_setting 25 0   &trans                    &trans                    &trans                   &trans                     &trans                    &trans        &trans     &trans     &trans &trans
   &trans &trans &trans &trans &trans &trans
             >;
         };

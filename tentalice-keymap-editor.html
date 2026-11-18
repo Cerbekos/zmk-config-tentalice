@@ -132,13 +132,14 @@
     }
 
     .keyboard-scroll { overflow-x: auto; padding: 3px 2px 12px; }
+    .keyboard-stage { position: relative; width: 890px; height: 286px; margin: 0 auto; }
 
     .keyboard {
       position: relative;
-      width: 780px;
+      width: 890px;
       height: 286px;
-      min-width: 780px;
-      margin: 0 auto;
+      min-width: 890px;
+      margin: 0;
     }
 
     .key {
@@ -180,6 +181,30 @@
     .key-label { font-size: 13px; font-weight: 750; line-height: 1.15; white-space: pre-line; }
     .key-detail { color: #afbdd4; font-size: 9px; line-height: 1.2; }
     .key-index { position: absolute; top: 4px; left: 6px; font-size: 9px; }
+
+    .trackball-overlay {
+      position: absolute;
+      top: 71%;
+      left: calc(50% - 13.5px);
+      z-index: 3;
+      width: 92px;
+      height: 92px;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+    }
+
+    .trackball-overlay svg { display: block; width: 100%; height: 100%; overflow: visible; }
+    .trackball-angle-marker { transition: transform .2s ease-out; }
+    .trackball-overlay-angle {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      color: #e5e7eb;
+      font-size: 13px;
+      font-weight: 750;
+      font-variant-numeric: tabular-nums;
+    }
 
     .keyboard-fader {
       position: relative;
@@ -316,21 +341,133 @@
     #category-filter { min-width: 190px; }
     .settings-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 10px;
     }
-    .setting-field { display: grid; gap: 6px; color: var(--muted); font-size: 12px; }
+    .pointing-workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    .acceleration-settings-layout {
+      display: grid;
+      grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr);
+      align-items: start;
+      gap: 14px;
+    }
+    .pointing-card, .settings-group {
+      min-width: 0;
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #171c25;
+    }
+    .pointing-card h3, .settings-group h3 { margin: 0; color: #e8ecf5; font-size: 14px; }
+    .pointing-card h4 { margin: 0; color: #e8ecf5; font-size: 13px; }
+    .pointing-card-copy, .settings-group-copy {
+      margin: 6px 0 12px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .orientation-readout {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      color: #f3f4f6;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .orientation-status-dot {
+      width: 8px;
+      height: 8px;
+      flex: 0 0 auto;
+      border: 1px solid #c1caff;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px rgb(139 156 255 / 45%);
+    }
+    .axis-note {
+      margin-top: 10px;
+      padding: 8px 10px;
+      border-left: 3px solid #8b9cff;
+      border-radius: 4px;
+      background: #202636;
+      color: #c9d2e3;
+      font-size: 11px;
+      line-height: 1.5;
+    }
+    .setting-field {
+      display: grid;
+      align-content: start;
+      gap: 5px;
+      min-width: 0;
+      padding: 10px;
+      border: 1px solid #303846;
+      border-radius: 8px;
+      background: #1d232e;
+      color: #e3e8f2;
+      font-size: 12px;
+    }
+    .setting-field-title { font-weight: 650; }
+    .setting-field-help { color: var(--muted); font-size: 11px; line-height: 1.45; }
     .setting-field input[type="number"] { width: 100%; }
-    .setting-field.checkbox { display: flex; align-items: center; gap: 8px; min-height: 40px; }
+    .setting-field input[type="range"] { width: 100%; margin: 4px 0; accent-color: #9cafff; }
+    .setting-value { color: #b6c4ff; font-size: 12px; font-variant-numeric: tabular-nums; font-weight: 750; }
+    .acceleration-chart { display: block; width: 100%; height: auto; margin: 8px 0 2px; overflow: visible; }
+    .acceleration-chart text, .scroll-chart text { fill: #aab6cb; font-family: inherit; font-size: 10px; }
+    .acceleration-line { fill: none; stroke: #91a7ff; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    .acceleration-area { fill: url(#acceleration-fill); }
+    .chart-guide { stroke: #606b7e; stroke-dasharray: 4 5; stroke-width: 1; }
+    .chart-axis { stroke: #69758a; stroke-width: 1; }
+    .chart-value { fill: #eef1ff !important; font-size: 11px !important; font-weight: 700; }
+    .scroll-explainer {
+      display: grid;
+      grid-template-columns: minmax(120px, .65fr) minmax(0, 1.35fr);
+      align-items: center;
+      gap: 12px;
+      margin: 12px 0 14px;
+      padding: 10px;
+      border: 1px solid #303846;
+      border-radius: 8px;
+      background: #1d232e;
+    }
+    .scroll-chart { display: block; width: 100%; height: auto; }
+    .scroll-boundary { fill: none; stroke-width: 2; stroke-dasharray: 4 4; }
+    .scroll-boundary-x { stroke: #71c8ff; }
+    .scroll-boundary-y { stroke: #ffb86e; }
+    .scroll-legend { display: grid; gap: 6px; color: #c4cee0; font-size: 11px; line-height: 1.45; }
+    .scroll-legend span { display: flex; align-items: center; gap: 6px; }
+    .legend-dot { width: 9px; height: 9px; border-radius: 50%; background: #71c8ff; }
+    .legend-dot.y { background: #ffb86e; }
     .gesture-settings {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       gap: 12px;
-      margin-top: 16px;
+      margin-top: 14px;
     }
-    .gesture-setting { display: grid; gap: 7px; }
-    .gesture-setting label { color: var(--muted); font-size: 12px; }
-    .gesture-setting .gesture-action { display: grid; grid-template-columns: 1fr auto; gap: 6px; }
+    .setting-field.checkbox {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: start;
+      gap: 5px 8px;
+      min-height: 40px;
+    }
+    .setting-field.checkbox input { margin: 2px 0 0; }
+    .setting-field.checkbox .setting-field-help { grid-column: 1 / -1; }
+    .gesture-setting {
+      display: grid;
+      gap: 7px;
+      padding: 10px;
+      border: 1px solid #303846;
+      border-radius: 8px;
+      background: #1d232e;
+    }
+    .gesture-setting label { color: #dce3f1; font-size: 12px; }
+    .gesture-setting .gesture-action { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+    .gesture-setting .gesture-action input { width: 100%; }
     .settings-note { margin-top: 12px; color: var(--muted); font-size: 12px; line-height: 1.6; }
 
     .palette {
@@ -390,6 +527,8 @@
       .binding-builder { grid-template-columns: 1fr 1fr; }
       .keyboard-fader { padding-right: 6px; padding-left: 6px; }
       .keyboard-fader-point { min-width: 34px; font-size: 10px; }
+      .acceleration-settings-layout { grid-template-columns: 1fr; }
+      .scroll-explainer { grid-template-columns: minmax(105px, .7fr) minmax(0, 1.3fr); }
     }
   </style>
 </head>
@@ -419,19 +558,22 @@
       </div>
       <nav class="layer-tabs" id="layer-tabs" aria-label="レイヤー"></nav>
       <div class="keyboard-scroll">
-        <div class="keyboard" id="keyboard" aria-label="Tentalice キーボード"></div>
+        <div class="keyboard-stage">
+          <div class="keyboard" id="keyboard" aria-label="Tentalice キーボード"></div>
+          <div class="trackball-overlay" aria-hidden="true">
+            <svg viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="46" fill="#20252e" stroke="#3b414b" stroke-width="2"/>
+              <circle cx="50" cy="50" r="37" fill="#252a35" stroke="#3b414b" stroke-width="2"/>
+              <circle cx="50" cy="50" r="28" fill="none" stroke="#343b48" stroke-width="1"/>
+              <path d="M50 7v7M93 50h-7M50 93v-7M7 50h7" fill="none" stroke="#707b91" stroke-width="2" stroke-linecap="round"/>
+              <g class="trackball-angle-marker" id="trackball-angle-marker">
+                <circle cx="50" cy="11" r="5" fill="#8b9cff" stroke="#dce2ff" stroke-width="1.5"/>
+              </g>
+            </svg>
+            <span class="trackball-overlay-angle" id="trackball-overlay-angle">45°</span>
+          </div>
+        </div>
       </div>
-    </section>
-
-    <section class="panel" aria-labelledby="pointing-settings-heading">
-      <div class="section-heading">
-        <h2 id="pointing-settings-heading">トラックボール設定</h2>
-        <span class="hint">接続中のキーボードへ反映します</span>
-      </div>
-      <p class="status" id="settings-status" role="status">設定を変更するには、Studio対応キーボードへ接続してください。</p>
-      <div class="settings-grid" id="pointing-settings-form"></div>
-      <div class="gesture-settings" id="gesture-settings-form"></div>
-      <p class="settings-note">変更は接続中に反映されます。電源を切る前に「キーボードに保存」を押してください。設定は通常の6レイヤーとは別の内部領域に保存されます。</p>
     </section>
 
     <section class="panel" aria-labelledby="palette-heading">
@@ -483,6 +625,93 @@
       <div class="palette" id="palette"></div>
       <p class="footer-note">キーレイアウトとキー番号はboards/shields/tentalice/tentalice-layouts.dtsiに対応しています。ZMKキーコードリストは<a href="https://zmk.dev/docs/keymaps/list-of-keycodes" target="_blank" rel="noopener noreferrer">ZMK公式一覧</a>の項目です。キーコードは文字そのものではなくキー入力を表すため、記号の入力結果はOSやキーボード配列によって異なる場合があります。独自キーコードリストは動作選択から作成できます。USB接続にはWeb Serial対応ブラウザー（Chrome / Edge）とインターネット接続が必要です。キーマップのレイヤー追加・削除はできません。</p>
     </section>
+
+    <section class="panel" aria-labelledby="pointing-settings-heading">
+      <div class="section-heading">
+        <h2 id="pointing-settings-heading">トラックボール設定</h2>
+        <span class="hint">接続中のキーボードへ反映します</span>
+      </div>
+      <p class="status" id="settings-status" role="status">設定を変更するには、Studio対応キーボードへ接続してください。</p>
+      <div class="pointing-workspace">
+        <article class="pointing-card" aria-labelledby="orientation-heading">
+          <h3 id="orientation-heading">ボールの角度</h3>
+          <p class="pointing-card-copy">センサーの取り付け角度を補正した後、固定の軸変換を行います。角度はキーボード中央のダイヤルで確認できます。</p>
+          <div class="orientation-readout">
+            <span class="orientation-status-dot" aria-hidden="true"></span>
+            <span id="orientation-readout">センサー補正 45°</span>
+          </div>
+          <div id="rotation-control"></div>
+          <p class="axis-note">固定変換: X/Y軸を入れ替え、Y軸を反転。キーボード中央のマーカーがセンサー回転補正の角度を示します。</p>
+        </article>
+      </div>
+      <section class="settings-group" aria-labelledby="acceleration-settings-heading">
+        <h3 id="acceleration-settings-heading">ポインター加速</h3>
+        <p class="settings-group-copy">倍率は1,000‰で等倍です。等倍速度までは最小倍率から1倍へ、その先は最大速度に向けて最大倍率まで上がります。</p>
+        <div class="acceleration-settings-layout">
+          <article class="pointing-card" aria-labelledby="acceleration-heading">
+            <h4 id="acceleration-heading">球を速く動かすと、カーソルも大きく動く</h4>
+            <p class="pointing-card-copy">横軸は球の速さ、縦軸はカーソル倍率です。設定値を変えると、ファームウェアと同じ計算式で曲線が更新されます。</p>
+            <svg class="acceleration-chart" id="acceleration-chart" viewBox="0 0 360 170" role="img" aria-labelledby="acceleration-heading acceleration-chart-description">
+              <desc id="acceleration-chart-description">球の速度に対するカーソル倍率の加速曲線</desc>
+              <defs>
+                <linearGradient id="acceleration-fill" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0" stop-color="#91a7ff" stop-opacity=".3"/>
+                  <stop offset="1" stop-color="#91a7ff" stop-opacity=".02"/>
+                </linearGradient>
+              </defs>
+              <path class="chart-axis" d="M42 14V132H342"/>
+              <path class="chart-guide" id="acceleration-threshold-guide" d="M102 14V132"/>
+              <path class="chart-guide" id="acceleration-max-guide" d="M342 14V132"/>
+              <path class="acceleration-area" id="acceleration-area"/>
+              <path class="acceleration-line" id="acceleration-line"/>
+              <text x="42" y="151">ゆっくり</text>
+              <text x="342" y="151" text-anchor="end">速く動かす</text>
+              <text x="47" y="12">倍率</text>
+              <text class="chart-value" id="acceleration-min-label" x="48" y="124">0.8×</text>
+              <text class="chart-value" id="acceleration-neutral-label" x="110" y="82">1×</text>
+              <text class="chart-value" id="acceleration-max-label" x="338" y="22" text-anchor="end">3×</text>
+              <text id="acceleration-threshold-label" x="102" y="166" text-anchor="middle">等倍速度</text>
+            </svg>
+          </article>
+          <div class="settings-grid" id="acceleration-settings-form"></div>
+        </div>
+      </section>
+      <section class="settings-group" aria-labelledby="scroll-settings-heading">
+        <h3 id="scroll-settings-heading">縦・横スクロールの振り分け</h3>
+        <p class="settings-group-copy">スクロール中の横移動と縦移動の比率で、横送り・縦送りを選びます。2本の境界の間は方向を確定せず、斜め入力の誤判定を抑えます。</p>
+        <div class="scroll-explainer">
+          <svg class="scroll-chart" viewBox="0 0 200 150" role="img" aria-label="横移動と縦移動の比率によるスクロール判定">
+            <path class="chart-axis" d="M28 12V120H136"/>
+            <path class="scroll-boundary scroll-boundary-x" id="scroll-boundary-x" d="M28 120L188 70"/>
+            <path class="scroll-boundary scroll-boundary-y" id="scroll-boundary-y" d="M28 120L138 12"/>
+            <text x="82" y="143" text-anchor="middle">横移動 →</text>
+            <text x="12" y="20">↑ 縦</text>
+          </svg>
+          <div class="scroll-legend">
+            <span><i class="legend-dot"></i><span id="scroll-x-summary">横送り境界 5/8</span></span>
+            <span><i class="legend-dot y"></i><span id="scroll-y-summary">縦送り境界 1/1</span></span>
+            <span>境界を離すほど、斜め入力を判定しない範囲が広がります。</span>
+          </div>
+        </div>
+        <div class="settings-grid" id="scroll-settings-form"></div>
+      </section>
+      <section class="settings-group" aria-labelledby="snap-settings-heading">
+        <h3 id="snap-settings-heading">スクロールの安定性</h3>
+        <p class="settings-group-copy">入力を何回分まとめて判定するか、判定後に方向をどれだけ保持するかを調整します。</p>
+        <div class="settings-grid" id="snap-settings-form"></div>
+      </section>
+      <section class="settings-group" aria-labelledby="gesture-timing-heading">
+        <h3 id="gesture-timing-heading">ジェスチャーの判定タイミング</h3>
+        <p class="settings-group-copy">1ストロークの必要量、連続入力の待ち時間、誤操作を防ぐ間隔を設定します。</p>
+        <div class="settings-grid" id="gesture-timing-settings-form"></div>
+      </section>
+      <section class="settings-group" aria-labelledby="gesture-settings-heading">
+        <h3 id="gesture-settings-heading">ジェスチャーの割り当て</h3>
+        <p class="settings-group-copy">ボール操作をジェスチャーとして登録し、実行するキー操作を指定します。</p>
+        <div class="gesture-settings" id="gesture-settings-form"></div>
+      </section>
+      <p class="settings-note">変更は接続中のキーボードにすぐ反映されます。再起動後も保持するには「キーボードに保存」を押してください。設定は通常の6レイヤーとは別の内部領域に保存されます。</p>
+    </section>
   </main>
 
   <script>
@@ -494,28 +723,29 @@
       const SETTINGS_LAYER_INDEX = 6;
       const KEYS_PER_LAYER = 42;
       const POINTING_SETTINGS = [
-        { id: 0, label: "センサー回転角度", min: 0, max: 355, step: 5, unit: "°", defaultValue: 45 },
-        { id: 1, label: "加速：最小倍率", min: 100, max: 20000, step: 50, unit: "‰", defaultValue: 800 },
-        { id: 2, label: "加速：最大倍率", min: 100, max: 20000, step: 50, unit: "‰", defaultValue: 3000 },
-        { id: 3, label: "加速：等倍速度", min: 1, max: 100000, step: 100, unit: "counts/s", defaultValue: 1200 },
-        { id: 4, label: "加速：最大速度", min: 1, max: 100000, step: 100, unit: "counts/s", defaultValue: 6000 },
-        { id: 5, label: "加速：指数", min: 1, max: 4, step: 1, unit: "", defaultValue: 2 },
-        { id: 6, label: "加速：端数を蓄積", type: "checkbox", defaultValue: 1 },
-        { id: 7, label: "スナップ：X軸の分子", min: 1, max: 1000, step: 1, unit: "", defaultValue: 5 },
-        { id: 8, label: "スナップ：X軸の分母", min: 1, max: 1000, step: 1, unit: "", defaultValue: 8 },
-        { id: 9, label: "スナップ：Y軸の分子", min: 1, max: 1000, step: 1, unit: "", defaultValue: 1 },
-        { id: 10, label: "スナップ：Y軸の分母", min: 1, max: 1000, step: 1, unit: "", defaultValue: 1 },
-        { id: 13, label: "スナップ：必要サンプル数", min: 1, max: 16, step: 1, unit: "events", defaultValue: 10 },
-        { id: 14, label: "スナップ：即時判定量", min: 0, max: 100000, step: 50, unit: "", defaultValue: 1500 },
-        { id: 15, label: "スナップ：方向ロック時間", min: 0, max: 60000, step: 10, unit: "ms", defaultValue: 200 },
-        { id: 16, label: "スナップ：ロックイベント数", min: 0, max: 255, step: 1, unit: "events", defaultValue: 10 },
-        { id: 17, label: "スナップ：アイドルリセット", min: 0, max: 60000, step: 10, unit: "ms (0=無効)", defaultValue: 200 },
-        { id: 18, label: "ジェスチャー：1ストローク量", min: 1, max: 10000, step: 1, unit: "counts", defaultValue: 50 },
-        { id: 19, label: "ジェスチャー：終了待ち時間", min: 0, max: 10000, step: 10, unit: "ms (0=キー解放時)", defaultValue: 0 },
-        { id: 20, label: "ジェスチャー：クールダウン", min: 0, max: 10000, step: 10, unit: "ms", defaultValue: 10 },
-        { id: 21, label: "ジェスチャー：途中破棄時間", min: 0, max: 10000, step: 10, unit: "ms (0=無効)", defaultValue: 400 }
+        { id: 0, group: "rotation", label: "センサーの回転補正", help: "基板上のセンサーの向きを補正します。球を上へ動かしたときの基準方向です。", min: 0, max: 355, step: 5, unit: "°", controlType: "range", defaultValue: 45 },
+        { id: 1, group: "acceleration", label: "ゆっくり動かしたとき", help: "最小カーソル倍率。800‰なら入力の約0.8倍です。", min: 100, max: 20000, step: 50, unit: "‰", controlType: "range", defaultValue: 800 },
+        { id: 2, group: "acceleration", label: "速く動かしたとき", help: "最大カーソル倍率。3,000‰なら入力の約3倍です。", min: 100, max: 20000, step: 50, unit: "‰", controlType: "range", defaultValue: 3000 },
+        { id: 3, group: "acceleration", label: "等倍になる速さ", help: "この速度でカーソル倍率が1倍になります。単位はセンサーのcounts/秒です。", min: 100, max: 100000, step: 100, unit: "counts/秒", controlType: "range", defaultValue: 1200 },
+        { id: 4, group: "acceleration", label: "最大倍率に達する速さ", help: "この速度以上では最大カーソル倍率になります。等倍速度より大きい値にしてください。", min: 100, max: 100000, step: 100, unit: "counts/秒", controlType: "range", defaultValue: 6000 },
+        { id: 5, group: "acceleration", label: "加速カーブの形", help: "1は直線的、数字が大きいほど速く動かしたときに加速が強まります。", min: 1, max: 4, step: 1, unit: "", defaultValue: 2 },
+        { id: 6, group: "acceleration", label: "小数の移動量を次へ持ち越す", help: "オンにすると、小さな移動が丸めで消えにくくなります。", type: "checkbox", defaultValue: 1 },
+        { id: 7, group: "scroll", label: "横送りと判定する境界（横）", help: "縦に対して横移動がどの程度あれば、横スクロールにするかを決めます。", min: 1, max: 1000, step: 1, unit: "", defaultValue: 5 },
+        { id: 8, group: "scroll", label: "横送りと判定する境界（縦）", help: "「横」÷「縦」で判定する境界の分母です。", min: 1, max: 1000, step: 1, unit: "", defaultValue: 8 },
+        { id: 9, group: "scroll", label: "縦送りと判定する境界（縦）", help: "横に対して縦移動がどの程度あれば、縦スクロールにするかを決めます。", min: 1, max: 1000, step: 1, unit: "", defaultValue: 1 },
+        { id: 10, group: "scroll", label: "縦送りと判定する境界（横）", help: "「縦」÷「横」で判定する境界の分母です。", min: 1, max: 1000, step: 1, unit: "", defaultValue: 1 },
+        { id: 13, group: "snap", label: "方向を決めるサンプル数", help: "スクロール方向の判定にまとめる入力回数。増やすと誤判定しにくくなります。", min: 1, max: 16, step: 1, unit: "回", defaultValue: 10 },
+        { id: 14, group: "snap", label: "早めに判定する移動量", help: "サンプル数に達する前でも、この量を超えると方向を判定します。", min: 0, max: 100000, step: 50, unit: "counts", defaultValue: 1500 },
+        { id: 15, group: "snap", label: "方向を保つ時間", help: "一度決めたスクロール方向を保つ時間。0なら時間では解除しません。", min: 0, max: 60000, step: 10, unit: "ms", defaultValue: 200 },
+        { id: 16, group: "snap", label: "方向を保つ入力回数", help: "指定回数のスクロール入力が終わるまで、決めた方向を保ちます。", min: 0, max: 255, step: 1, unit: "回", defaultValue: 10 },
+        { id: 17, group: "snap", label: "入力が途切れたときのリセット", help: "この時間だけ入力がないと、途中のスクロール判定をリセットします。0で無効です。", min: 0, max: 60000, step: 10, unit: "ms", defaultValue: 200 },
+        { id: 18, group: "gesture", label: "1ストロークに必要な移動量", help: "矢印1つ分として数えるボールの移動量。大きくすると誤認しにくくなります。", min: 1, max: 10000, step: 1, unit: "counts", defaultValue: 50 },
+        { id: 19, group: "gesture", label: "ジェスチャー終了の待ち時間", help: "最後のストローク後に実行するまでの待ち時間。0ならジェスチャーキーを離した時点で実行します。", min: 0, max: 10000, step: 10, unit: "ms", defaultValue: 0 },
+        { id: 20, group: "gesture", label: "次のジェスチャーまでの間隔", help: "操作が実行された後、次のジェスチャーを受け付けない時間です。", min: 0, max: 10000, step: 10, unit: "ms", defaultValue: 10 },
+        { id: 21, group: "gesture", label: "途中のジェスチャーを破棄するまで", help: "ストローク間で入力が途切れた場合に、記録途中のジェスチャーを破棄します。0で無効です。", min: 0, max: 10000, step: 10, unit: "ms", defaultValue: 400 }
       ];
       const GESTURE_PATTERNS = [
+        { label: "未割り当て", value: 0 },
         { label: "←", value: 1 }, { label: "→", value: 2 }, { label: "↓", value: 3 }, { label: "↑", value: 4 },
         { label: "← →", value: 11 }, { label: "← ↓", value: 16 }, { label: "← ↑", value: 21 },
         { label: "→ ←", value: 7 }, { label: "→ ↓", value: 17 }, { label: "→ ↑", value: 22 },
@@ -523,12 +753,14 @@
         { label: "↑ ←", value: 9 }, { label: "↑ →", value: 14 }, { label: "↑ ↓", value: 19 }
       ];
       const GESTURE_SETTINGS = [
-        { id: 22, actionSlot: 26, label: "履歴を戻る", defaultPattern: 1, defaultBinding: "&kp LA(LEFT)" },
-        { id: 23, actionSlot: 27, label: "履歴を進む", defaultPattern: 2, defaultBinding: "&kp LA(RIGHT)" },
-        { id: 24, actionSlot: 28, label: "タブを閉じる", defaultPattern: 3, defaultBinding: "&kp LC(W)" },
-        { id: 25, actionSlot: 29, label: "新しいタブ", defaultPattern: 4, defaultBinding: "&kp LC(T)" }
+        { id: 22, actionSlot: 26, label: "操作 1", defaultPattern: 0, defaultBinding: "" },
+        { id: 23, actionSlot: 27, label: "操作 2", defaultPattern: 0, defaultBinding: "" },
+        { id: 24, actionSlot: 28, label: "操作 3", defaultPattern: 0, defaultBinding: "" },
+        { id: 25, actionSlot: 29, label: "操作 4", defaultPattern: 0, defaultBinding: "" }
       ];
       const KEY_UNIT = 52;
+      const RIGHT_HALF_START = 7.75;
+      const RIGHT_HALF_OFFSET = 110;
       const physicalKeys = [
         { x: 0.4, y: 0.45, w: 1, h: 1, r: -2, rx: 1.6, ry: 0.85 },
         { x: 1.4, y: 0.45, w: 1, h: 1, r: -1, rx: 0, ry: -0.05 },
@@ -845,9 +1077,28 @@
         bindingKeyLabel: document.getElementById("binding-key-label"),
         addBindingButton: document.getElementById("add-binding-button"),
         selectionHint: document.getElementById("selection-hint"),
-        pointingSettingsForm: document.getElementById("pointing-settings-form"),
+        rotationControl: document.getElementById("rotation-control"),
+        accelerationSettingsForm: document.getElementById("acceleration-settings-form"),
+        scrollSettingsForm: document.getElementById("scroll-settings-form"),
+        snapSettingsForm: document.getElementById("snap-settings-form"),
+        gestureTimingSettingsForm: document.getElementById("gesture-timing-settings-form"),
         gestureSettingsForm: document.getElementById("gesture-settings-form"),
-        settingsStatus: document.getElementById("settings-status")
+        settingsStatus: document.getElementById("settings-status"),
+        trackballAngleMarker: document.getElementById("trackball-angle-marker"),
+        trackballOverlayAngle: document.getElementById("trackball-overlay-angle"),
+        orientationReadout: document.getElementById("orientation-readout"),
+        accelerationLine: document.getElementById("acceleration-line"),
+        accelerationArea: document.getElementById("acceleration-area"),
+        accelerationThresholdGuide: document.getElementById("acceleration-threshold-guide"),
+        accelerationMaxGuide: document.getElementById("acceleration-max-guide"),
+        accelerationMinLabel: document.getElementById("acceleration-min-label"),
+        accelerationNeutralLabel: document.getElementById("acceleration-neutral-label"),
+        accelerationMaxLabel: document.getElementById("acceleration-max-label"),
+        accelerationThresholdLabel: document.getElementById("acceleration-threshold-label"),
+        scrollBoundaryX: document.getElementById("scroll-boundary-x"),
+        scrollBoundaryY: document.getElementById("scroll-boundary-y"),
+        scrollXSummary: document.getElementById("scroll-x-summary"),
+        scrollYSummary: document.getElementById("scroll-y-summary")
       };
 
       const rpcModulesPromise = Promise.all([
@@ -954,35 +1205,54 @@
       const pointingSettingControls = new Map();
       const gesturePatternControls = new Map();
       const gestureActionControls = new Map();
+      const settingsFormByGroup = new Map([
+        ["rotation", elements.rotationControl],
+        ["acceleration", elements.accelerationSettingsForm],
+        ["scroll", elements.scrollSettingsForm],
+        ["snap", elements.snapSettingsForm],
+        ["gesture", elements.gestureTimingSettingsForm]
+      ]);
 
       function buildPointingSettingsControls() {
         for (const setting of POINTING_SETTINGS) {
           const label = document.createElement("label");
           label.className = `setting-field${setting.type === "checkbox" ? " checkbox" : ""}`;
           const input = document.createElement("input");
-          input.type = setting.type || "number";
+          input.type = setting.type || setting.controlType || "number";
           input.dataset.settingId = String(setting.id);
           if (setting.type === "checkbox") {
             input.setAttribute("aria-label", setting.label);
+            input.checked = setting.defaultValue !== 0;
+            const title = document.createElement("span");
+            title.className = "setting-field-title";
+            title.textContent = setting.label;
+            const help = document.createElement("span");
+            help.className = "setting-field-help";
+            help.textContent = setting.help;
+            label.append(input, title, help);
           } else {
             input.min = String(setting.min);
             input.max = String(setting.max);
             input.step = String(setting.step);
-          }
-          const title = document.createElement("span");
-          title.textContent = setting.label;
-          if (setting.type === "checkbox") {
-            label.append(input, title);
-          } else {
-            label.append(title, input);
-            if (setting.unit) {
-              const unit = document.createElement("span");
-              unit.textContent = setting.unit;
-              label.append(unit);
-            }
+            input.value = String(setting.defaultValue);
+            input.setAttribute("aria-label", setting.label);
+            const title = document.createElement("span");
+            title.className = "setting-field-title";
+            title.textContent = setting.label;
+            const help = document.createElement("span");
+            help.className = "setting-field-help";
+            help.textContent = setting.help;
+            const value = document.createElement("output");
+            value.className = "setting-value";
+            label.append(title, input, value, help);
+            input.addEventListener("input", updatePointingVisualization);
+            input.addEventListener("input", () => {
+              value.textContent = formatPointingSetting(setting, Number(input.value));
+            });
+            value.textContent = formatPointingSetting(setting, setting.defaultValue);
           }
           input.addEventListener("change", () => void savePointingSetting(setting, input));
-          elements.pointingSettingsForm.append(label);
+          settingsFormByGroup.get(setting.group).append(label);
           pointingSettingControls.set(setting.id, input);
         }
 
@@ -990,40 +1260,134 @@
           const container = document.createElement("div");
           container.className = "gesture-setting";
           const patternLabel = document.createElement("label");
-          patternLabel.textContent = `${gesture.label}：ジェスチャー`;
+          patternLabel.textContent = "操作";
           const pattern = document.createElement("select");
-          pattern.setAttribute("aria-label", patternLabel.textContent);
+          pattern.setAttribute("aria-label", `${gesture.label}: 操作`);
           for (const optionValue of GESTURE_PATTERNS) {
             const option = document.createElement("option");
             option.value = String(optionValue.value);
             option.textContent = optionValue.label;
             pattern.append(option);
           }
-          pattern.addEventListener("change", () => void saveGesturePattern(gesture, pattern));
+          patternLabel.append(pattern);
+          pattern.addEventListener("change", () => {
+            void saveGesturePattern(gesture, pattern);
+          });
 
           const actionLabel = document.createElement("label");
-          actionLabel.textContent = `${gesture.label}：実行するキー動作`;
+          actionLabel.textContent = "実行するキー操作";
           const actionRow = document.createElement("div");
           actionRow.className = "gesture-action";
           const action = document.createElement("input");
           action.type = "text";
-          action.placeholder = "&kp LA(LEFT)";
-          action.setAttribute("aria-label", actionLabel.textContent);
-          const save = document.createElement("button");
-          save.type = "button";
-          save.className = "button";
-          save.textContent = "適用";
-          save.addEventListener("click", () => void saveGestureAction(gesture, action));
-          actionRow.append(action, save);
-          container.append(patternLabel, pattern, actionLabel, actionRow);
+          action.placeholder = "例: &kp A";
+          action.setAttribute("aria-label", `${gesture.label}: 実行するキー操作`);
+          action.addEventListener("change", () => void saveGestureAction(gesture, action));
+          action.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              action.blur();
+            }
+          });
+          actionRow.append(action);
+          actionLabel.append(actionRow);
+          container.append(patternLabel, actionLabel);
           elements.gestureSettingsForm.append(container);
           gesturePatternControls.set(gesture.id, pattern);
           gestureActionControls.set(gesture.id, action);
         }
+        updatePointingVisualization();
       }
 
       function settingsLayer(device = state.device) {
         return device?.keymap?.layers[SETTINGS_LAYER_INDEX] || null;
+      }
+
+      function currentPointingSetting(id) {
+        const setting = POINTING_SETTINGS.find((item) => item.id === id);
+        const control = pointingSettingControls.get(id);
+        const value = control ? Number(control.value) : Number.NaN;
+        return Number.isFinite(value) ? value : setting.defaultValue;
+      }
+
+      function formatPointingSetting(setting, value) {
+        if (setting.id === 1 || setting.id === 2) {
+          return `${value.toLocaleString()}‰ · ${(value / 1000).toFixed(2)}倍`;
+        }
+        return setting.unit ? `${value.toLocaleString()} ${setting.unit}` : value.toLocaleString();
+      }
+
+      function updatePointingVisualization() {
+        const angle = currentPointingSetting(0);
+        elements.trackballAngleMarker.setAttribute("transform", `rotate(${angle} 50 50)`);
+        elements.trackballOverlayAngle.textContent = `${angle}°`;
+        elements.orientationReadout.textContent = `センサー補正 ${angle}°`;
+
+        const minFactor = Math.max(100, Math.min(20000, currentPointingSetting(1)));
+        const maxFactor = Math.max(minFactor, Math.min(20000, currentPointingSetting(2)));
+        const threshold = Math.max(1, currentPointingSetting(3));
+        const speedMax = Math.max(threshold + 1, currentPointingSetting(4));
+        const exponent = Math.max(1, Math.min(4, currentPointingSetting(5)));
+        const baseFactor = Math.max(minFactor, 1000);
+        const left = 42;
+        const right = 342;
+        const top = 14;
+        const bottom = 132;
+        const speedX = (speed) => left + (speed / speedMax) * (right - left);
+        const factorY = (factor) => maxFactor === minFactor
+          ? (top + bottom) / 2
+          : bottom - ((factor - minFactor) / (maxFactor - minFactor)) * (bottom - top);
+        const factorAt = (speed) => {
+          if (speed <= threshold) {
+            const progress = speed / threshold;
+            return minFactor + (baseFactor - minFactor) * progress ** exponent;
+          }
+          const progress = Math.min(1, (speed - threshold) / (speedMax - threshold));
+          return baseFactor + (maxFactor - baseFactor) * progress ** exponent;
+        };
+        const samples = 50;
+        const points = Array.from({ length: samples + 1 }, (_, index) => {
+          const speed = speedMax * index / samples;
+          return [speedX(speed), factorY(factorAt(speed))];
+        });
+        const linePath = points.map(([x, y], index) =>
+          `${index === 0 ? "M" : "L"}${x.toFixed(1)} ${y.toFixed(1)}`
+        ).join(" ");
+        const areaPath = `M${left} ${bottom} ${points.map(([x, y]) =>
+          `L${x.toFixed(1)} ${y.toFixed(1)}`
+        ).join(" ")} L${right} ${bottom} Z`;
+        const thresholdX = speedX(threshold);
+        elements.accelerationLine.setAttribute("d", linePath);
+        elements.accelerationArea.setAttribute("d", areaPath);
+        elements.accelerationThresholdGuide.setAttribute("d", `M${thresholdX} ${top}V${bottom}`);
+        elements.accelerationMaxGuide.setAttribute("d", `M${right} ${top}V${bottom}`);
+        elements.accelerationMinLabel.textContent = `${(minFactor / 1000).toFixed(2)}×`;
+        elements.accelerationMinLabel.setAttribute("y", String(Math.max(top + 12, Math.min(bottom - 4, factorY(minFactor) - 5))));
+        elements.accelerationNeutralLabel.textContent = `${(baseFactor / 1000).toFixed(2)}×`;
+        elements.accelerationNeutralLabel.setAttribute("x", String(Math.min(right - 4, thresholdX + 6)));
+        elements.accelerationNeutralLabel.setAttribute("y", String(Math.max(top + 12, Math.min(bottom - 4, factorY(baseFactor) - 5))));
+        elements.accelerationMaxLabel.textContent = `${(maxFactor / 1000).toFixed(2)}×`;
+        elements.accelerationMaxLabel.setAttribute("y", String(Math.min(bottom - 4, factorY(maxFactor) + 13)));
+        elements.accelerationThresholdLabel.setAttribute("x", String(Math.min(right - 26, Math.max(left + 26, thresholdX))));
+        elements.accelerationThresholdLabel.textContent = `${threshold.toLocaleString()}/秒`;
+
+        const xNum = Math.max(1, currentPointingSetting(7));
+        const xDen = Math.max(1, currentPointingSetting(8));
+        const yNum = Math.max(1, currentPointingSetting(9));
+        const yDen = Math.max(1, currentPointingSetting(10));
+        const plotLeft = 28;
+        const plotBottom = 120;
+        const plotSize = 108;
+        const boundaryEnd = (ratio) => {
+          const safeRatio = Math.max(0.01, Math.min(100, ratio));
+          const progressX = Math.min(1, 1 / safeRatio);
+          const progressY = Math.min(1, safeRatio);
+          return `M${plotLeft} ${plotBottom}L${plotLeft + progressX * plotSize} ${plotBottom - progressY * plotSize}`;
+        };
+        elements.scrollBoundaryX.setAttribute("d", boundaryEnd(xNum / xDen));
+        elements.scrollBoundaryY.setAttribute("d", boundaryEnd(yNum / yDen));
+        elements.scrollXSummary.textContent = `横送り境界 ${xNum}/${xDen}`;
+        elements.scrollYSummary.textContent = `縦送り境界 ${yNum}/${yDen}`;
       }
 
       function updatePointingSettingsControls() {
@@ -1042,11 +1406,17 @@
           if (!input) continue;
           const binding = layer?.bindings[setting.id];
           input.disabled = !enabled;
-          if (!device?.loaded || !binding) continue;
+          if (!device?.loaded || !binding) {
+            if (setting.type === "checkbox") input.checked = setting.defaultValue !== 0;
+            else input.value = String(setting.defaultValue);
+            continue;
+          }
           if (setting.type === "checkbox") {
             input.checked = binding.param2 !== 0;
           } else {
             input.value = String(binding.param2);
+            const value = input.parentElement.querySelector(".setting-value");
+            if (value) value.textContent = formatPointingSetting(setting, binding.param2);
           }
         }
         for (const gesture of GESTURE_SETTINGS) {
@@ -1056,20 +1426,20 @@
             pattern.disabled = !enabled;
             const binding = layer?.bindings[gesture.id];
             if (device?.loaded && binding) pattern.value = String(binding.param2);
+            else pattern.value = String(gesture.defaultPattern);
           }
           if (action) {
             action.disabled = !enabled;
             const binding = layer?.bindings[gesture.actionSlot];
             if (device?.loaded && binding) {
-              action.value = deviceBindingDisplay(deviceBindingKey(binding));
+              const display = deviceBindingDisplay(deviceBindingKey(binding));
+              action.value = /^(?:&?trans|transparent)$/i.test(display.trim()) ? "" : display;
             } else {
               action.value = gesture.defaultBinding;
             }
           }
-          const saveButton = elements.gestureSettingsForm
-            .querySelectorAll(".gesture-action button")[GESTURE_SETTINGS.indexOf(gesture)];
-          if (saveButton) saveButton.disabled = !enabled;
         }
+        updatePointingVisualization();
       }
 
       function settingBehaviorId(device) {
@@ -1093,9 +1463,15 @@
         }
         const currentMin = layer.bindings[1]?.param2;
         const currentMax = layer.bindings[2]?.param2;
+        const currentThreshold = layer.bindings[3]?.param2;
+        const currentSpeedMax = layer.bindings[4]?.param2;
         if ((setting.id === 1 && value > currentMax) ||
-            (setting.id === 2 && value < currentMin)) {
-          setStatus("加速の最小倍率は最大倍率以下にしてください。", "error");
+            (setting.id === 2 && value < currentMin) ||
+            (setting.id === 3 && value >= currentSpeedMax) ||
+            (setting.id === 4 && value <= currentThreshold)) {
+          setStatus(setting.id <= 2
+            ? "加速の最小倍率は最大倍率以下にしてください。"
+            : "最大倍率に達する速さは、等倍になる速さより大きくしてください。", "error");
           updatePointingSettingsControls();
           return;
         }
@@ -1135,9 +1511,10 @@
       async function saveGestureAction(gesture, input) {
         const device = state.device;
         const layer = settingsLayer(device);
-        const binding = deviceBindingFromExpression(input.value);
+        const expression = input.value.trim() || "&trans";
+        const binding = deviceBindingFromExpression(expression);
         if (!device?.loaded || !layer || !binding) {
-          setStatus(`動作「${input.value}」をファームウェアのキー動作に変換できません。`, "error");
+          setStatus(`動作「${expression}」をファームウェアのキー動作に変換できません。`, "error");
           return;
         }
         try {
@@ -1988,7 +2365,8 @@
           key.type = "button";
           key.disabled = !binding || Boolean(state.device?.applying);
           key.className = `key${!binding ? " placeholder" : bindingValue === "&trans" || label === "Trans" ? " transparent" : ""}${state.selectedKey === index ? " selected" : ""}`;
-          key.style.left = `${position.x * KEY_UNIT}px`;
+          const rightHalfOffset = position.x >= RIGHT_HALF_START ? RIGHT_HALF_OFFSET : 0;
+          key.style.left = `${position.x * KEY_UNIT + rightHalfOffset}px`;
           key.style.top = `${position.y * KEY_UNIT}px`;
           key.style.width = `${position.w * KEY_UNIT}px`;
           key.style.height = `${position.h * KEY_UNIT}px`;
